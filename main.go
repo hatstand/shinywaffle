@@ -124,6 +124,69 @@ type CC1101 struct {
   lock sync.Mutex
 }
 
+func NewCC1101(packetCh chan<- []byte) CC1101 {
+  err := embd.InitSPI()
+  if err != nil {
+    panic(err)
+  }
+
+  err = embd.InitGPIO()
+  if err != nil {
+    panic(err)
+  }
+
+  gdo0, err := embd.NewDigitalPin(24)
+  if err != nil {
+    panic(err)
+  }
+  gdo0.SetDirection(embd.In)
+
+  gdo2, err := embd.NewDigitalPin(25)
+  if err != nil {
+    panic(err)
+  }
+  gdo2.SetDirection(embd.In)
+
+  bus := embd.NewSPIBus(embd.SPIMode0, 0, 50000, 8, 0)
+
+  cc1101 := CC1101{
+    bus:  bus,
+    gdo0: gdo0,
+    gdo2: gdo2,
+  }
+  cc1101.Reset()
+  cc1101.SelfTest()
+  cc1101.Init()
+
+  cc1101.SetIdle()
+  cc1101.SetRx()
+
+  log.Print("Waiting for packets...")
+  gdo0.Watch(embd.EdgeRising, func(pin embd.DigitalPin) {
+    defer cc1101.SetRx()
+    defer cc1101.SetIdle()
+
+    log.Print("Received something!")
+    time.Sleep(time.Microsecond * 50)
+    recv, err := cc1101.Receive()
+    if err != nil {
+      log.Println("Failed to receive: ", err)
+    } else {
+      packetCh <- recv
+    }
+  })
+
+  return cc1101
+}
+
+func (c *CC1101) Close() {
+  c.bus.Close()
+  c.gdo0.Close()
+  c.gdo2.Close()
+  embd.CloseGPIO()
+  embd.CloseSPI()
+}
+
 func (cc1101 *CC1101) Strobe(address byte) error {
   data := []byte{address, 0x00}
   return cc1101.bus.TransferAndReceiveData(data)
@@ -328,6 +391,8 @@ func (c *CC1101) Send(packet []byte) error {
   c.lock.Lock()
   defer c.lock.Unlock()
 
+  defer c.SetRx()
+
   log.Printf("Sending packet: %v\n", packet)
 
   if len(packet) > 60 {
@@ -375,67 +440,17 @@ func (c *CC1101) Send(packet []byte) error {
 
 func main() {
   flag.Parse()
-  err := embd.InitSPI()
-  if err != nil {
-    panic(err)
-  }
-  defer embd.CloseSPI()
 
-  err = embd.InitGPIO()
-  if err != nil {
-    panic(err)
-  }
-  defer embd.CloseGPIO()
+  packetCh := make(chan []byte, 10)
+  cc1101 := NewCC1101(packetCh)
+  defer cc1101.Close()
 
-  gdo0, err := embd.NewDigitalPin(24)
-  if err != nil {
-    panic(err)
-  }
-  defer gdo0.Close()
-  gdo0.SetDirection(embd.In)
-
-  gdo2, err := embd.NewDigitalPin(25)
-  if err != nil {
-    panic(err)
-  }
-  defer gdo2.Close()
-  gdo2.SetDirection(embd.In)
-
-  bus := embd.NewSPIBus(embd.SPIMode0, 0, 50000, 8, 0)
-  defer bus.Close()
-
-  cc1101 := CC1101{
-    bus:  bus,
-    gdo0: gdo0,
-    gdo2: gdo2,
-  }
-  cc1101.Reset()
-  cc1101.SelfTest()
-  cc1101.Init()
-
-  cc1101.SetIdle()
-
+  /*
   time.Sleep(5 * time.Second)
   cc1101.Send([]byte{0x57, 0x16, 0x0a, 0x2b, 0x7e, 0x60, 0x3b, 0x26, 0x14})
   cc1101.Send([]byte{0x57, 0x16, 0x0a, 0x2b, 0x7e, 0x60, 0x3b, 0x26, 0x14})
   cc1101.Send([]byte{0x57, 0x16, 0x0a, 0x2b, 0x7e, 0x60, 0x3b, 0x26, 0x14})
-
-  cc1101.SetRx()
-  log.Print("Waiting for packets...")
-  packetCh := make(chan []byte)
-  gdo0.Watch(embd.EdgeRising, func(pin embd.DigitalPin) {
-    defer cc1101.SetRx()
-    defer cc1101.SetIdle()
-
-    log.Print("Received something!")
-    time.Sleep(time.Microsecond * 50)
-    recv, err := cc1101.Receive()
-    if err != nil {
-      log.Println("Failed to receive: ", err)
-    } else {
-      packetCh <- recv
-    }
-  })
+  */
 
   for {
     select{
