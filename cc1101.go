@@ -1,6 +1,7 @@
 package cc1101
 
 import (
+  "flag"
   "fmt"
   "log"
   "sync"
@@ -10,6 +11,9 @@ import (
   "github.com/kidoman/embd"
   _ "github.com/kidoman/embd/host/rpi"
 )
+
+var gdo0pin = flag.Int("gdo0", 24, "GPIO pin connected to CC1101 GDO0 (BCM numbering")
+var gdo2pin = flag.Int("gdo2", 25, "GPIO pin connected to CC1101 GDO2 (BCM numbering")
 
 const (
   // Read/write flags.
@@ -140,13 +144,13 @@ func NewCC1101(packetCh chan<- []byte) CC1101 {
     panic(err)
   }
 
-  gdo0, err := embd.NewDigitalPin(24)
+  gdo0, err := embd.NewDigitalPin(*gdo0pin)
   if err != nil {
     panic(err)
   }
   gdo0.SetDirection(embd.In)
 
-  gdo2, err := embd.NewDigitalPin(25)
+  gdo2, err := embd.NewDigitalPin(*gdo2pin)
   if err != nil {
     panic(err)
   }
