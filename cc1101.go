@@ -107,6 +107,7 @@ const (
   TEST0 = 0x2e
 )
 
+// Copied from TI datasheet.
 func convertRSSI(rssi int) int {
   if rssi >= 128 {
     return (rssi - 256) / 2 - RSSI_OFFSET
@@ -118,7 +119,12 @@ func convertRSSI(rssi int) int {
 
 type CC1101 struct {
   bus  embd.SPIBus
+  // Configured to emit a rising edge on receiving packets that pass the CRC check.
+  // See IOCFG0.
   gdo0 embd.DigitalPin
+  // Configured to emit a rising edge when the sync word has been transmitted
+  // and to emit a falling edge once a packet has been transmitted.
+  // See IOCFG2.
   gdo2 embd.DigitalPin
   lock sync.Mutex
 }
@@ -165,8 +171,6 @@ func NewCC1101(packetCh chan<- []byte) CC1101 {
     defer cc1101.SetRx()
     defer cc1101.SetIdle()
 
-    log.Print("Received something!")
-    time.Sleep(time.Microsecond * 50)
     recv, err := cc1101.Receive()
     if err != nil {
       log.Println("Failed to receive: ", err)
