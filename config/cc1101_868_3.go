@@ -8,7 +8,7 @@ const (
     FIFOTHR = 0x47        // RX FIFO and TX FIFO Thresholds
     SYNC1 = 0xd3          // Sync Word, High Byte
     SYNC0 = 0x91          // Sync Word, Low Byte
-    PKTLEN = 0xff         // Packet Length
+    PKTLEN = 0x3d         // Packet Length
     PKTCTRL1 = 0x04       // Packet Automation Control
     PKTCTRL0 = 0x05       // Packet Automation Control
     ADDR = 0x00           // Device Address
@@ -17,13 +17,13 @@ const (
     FSCTRL0 = 0x00        // Frequency Synthesizer Control
     FREQ2 = 0x21          // Frequency Control Word, High Byte
     FREQ1 = 0x65          // Frequency Control Word, Middle Byte
-    FREQ0 = 0x6a          // Frequency Control Word, Low Byte
+    FREQ0 = 0x44          // Frequency Control Word, Low Byte
     MDMCFG4 = 0xf5        // Modem Configuration
     MDMCFG3 = 0x83        // Modem Configuration
     MDMCFG2 = 0x03        // Modem Configuration
     MDMCFG1 = 0x22        // Modem Configuration
     MDMCFG0 = 0xf8        // Modem Configuration
-    DEVIATN = 0x31        // Modem Deviation Setting
+    DEVIATN = 0x34        // Modem Deviation Setting
     MCSM2 = 0x07          // Main Radio Control State Machine Configuration
     MCSM1 = 0x30          // Main Radio Control State Machine Configuration
     MCSM0 = 0x18          // Main Radio Control State Machine Configuration
