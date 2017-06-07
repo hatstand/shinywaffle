@@ -4,6 +4,7 @@ import (
   "flag"
   "fmt"
   "log"
+  "sync"
   "time"
 
   "github.com/hatstand/cc1101/config"
@@ -20,6 +21,7 @@ const (
 
   BYTES_IN_RXFIFO = 0x7f
   RXFIFO = 0x3f
+  TXFIFO = 0x3f
   OVERFLOW = 0x80
 
   CRC_OK = 0x80
@@ -30,8 +32,10 @@ const (
   // Strobes
   SRES = 0x30  // Reset
   SRX = 0x34   // Set receive mode
+  STX = 0x35   // Set transmit mode
   SIDLE = 0x36
   SFRX = 0x3a  // Flush RX FIFO buffer
+  SFTX = 0x3b  // Flush TX FIFO buffer
 
   // Status Registers
   PARTNUM = 0xf0
@@ -114,7 +118,10 @@ func convertRSSI(rssi int) int {
 
 
 type CC1101 struct {
-  bus embd.SPIBus
+  bus  embd.SPIBus
+  gdo0 embd.DigitalPin
+  gdo2 embd.DigitalPin
+  lock sync.Mutex
 }
 
 func (cc1101 *CC1101) Strobe(address byte) error {
@@ -149,6 +156,17 @@ func (c *CC1101) ReadBurst(address byte, num byte) ([]byte, error) {
 func (cc1101 *CC1101) WriteSingleByte(address byte, in byte) error {
   data := []byte{address | WRITE_SINGLE_BYTE, in}
   return cc1101.bus.TransferAndReceiveData(data)
+}
+
+func (c *CC1101) WriteBurst(address byte, data []byte) error {
+  var buf []byte
+  buf = append(buf, address | WRITE_BURST)
+  buf = append(buf, data...)
+  err := c.bus.TransferAndReceiveData(buf)
+  if err != nil {
+    return err
+  }
+  return nil
 }
 
 func (cc1101 *CC1101) Reset() error {
@@ -248,6 +266,10 @@ func (cc1101 *CC1101) SetRx() error {
   return cc1101.Strobe(SRX)
 }
 
+func (c *CC1101) SetTx() error {
+  return c.Strobe(STX)
+}
+
 func (c *CC1101) SetIdle() error {
   return c.Strobe(SIDLE)
 }
@@ -259,6 +281,9 @@ func (c *CC1101) FlushRx() {
 }
 
 func (c *CC1101) Receive() ([]byte, error) {
+  c.lock.Lock()
+  defer c.lock.Unlock()
+
   rxbytes, err := c.ReadSingleByte(RXBYTES)
   if err != nil {
     return nil, err
@@ -299,6 +324,55 @@ func (c *CC1101) Receive() ([]byte, error) {
   }
 }
 
+func (c *CC1101) Send(packet []byte) error {
+  c.lock.Lock()
+  defer c.lock.Unlock()
+
+  log.Printf("Sending packet: %v\n", packet)
+
+  if len(packet) > 60 {
+    return fmt.Errorf("Packet too long: %d", len(packet))
+  }
+  log.Printf("Writing packet length: %d\n", len(packet))
+  err := c.WriteSingleByte(TXFIFO, byte(len(packet)))
+  if err != nil {
+    return err
+  }
+  log.Println("Writing packet to FIFO")
+  err = c.WriteBurst(TXFIFO, packet)
+  if err != nil {
+    return err
+  }
+
+  log.Println("Enabling TX mode")
+  c.SetTx()
+  defer c.Strobe(SFTX)
+  defer c.Strobe(SIDLE)
+
+  log.Println("Waiting for sync to transmit")
+  for {
+    sync, err := c.gdo2.Read()
+    if err != nil {
+      return err
+    }
+    if sync > 0 {
+      break
+    }
+  }
+
+  log.Println("Waiting for end of packet")
+  for {
+    sync, err := c.gdo2.Read()
+    if err != nil {
+      return err
+    }
+    if sync == 0 {
+      break
+    }
+  }
+  return nil
+}
+
 func main() {
   flag.Parse()
   err := embd.InitSPI()
@@ -320,17 +394,32 @@ func main() {
   defer gdo0.Close()
   gdo0.SetDirection(embd.In)
 
+  gdo2, err := embd.NewDigitalPin(25)
+  if err != nil {
+    panic(err)
+  }
+  defer gdo2.Close()
+  gdo2.SetDirection(embd.In)
+
   bus := embd.NewSPIBus(embd.SPIMode0, 0, 50000, 8, 0)
   defer bus.Close()
 
   cc1101 := CC1101{
-    bus: bus,
+    bus:  bus,
+    gdo0: gdo0,
+    gdo2: gdo2,
   }
   cc1101.Reset()
   cc1101.SelfTest()
   cc1101.Init()
 
   cc1101.SetIdle()
+
+  time.Sleep(5 * time.Second)
+  cc1101.Send([]byte{0x57, 0x16, 0x0a, 0x2b, 0x7e, 0x60, 0x3b, 0x26, 0x14})
+  cc1101.Send([]byte{0x57, 0x16, 0x0a, 0x2b, 0x7e, 0x60, 0x3b, 0x26, 0x14})
+  cc1101.Send([]byte{0x57, 0x16, 0x0a, 0x2b, 0x7e, 0x60, 0x3b, 0x26, 0x14})
+
   cc1101.SetRx()
   log.Print("Waiting for packets...")
   packetCh := make(chan []byte)

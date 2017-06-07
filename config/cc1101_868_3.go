@@ -2,7 +2,7 @@ package config
 
 // Rf settings for CC1101
 const (
-    IOCFG2 = 0x29         // GDO2 Output Pin Configuration
+    IOCFG2 = 0x06         // GDO2 Output Pin Configuration
     IOCFG1 = 0x2e         // GDO1 Output Pin Configuration
     IOCFG0 = 0x07         // GDO0 Output Pin Configuration
     FIFOTHR = 0x47        // RX FIFO and TX FIFO Thresholds
