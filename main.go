@@ -317,15 +317,7 @@ func main() {
     panic(err)
   }
   defer gdo0.Close()
-
-  gdo2, err := embd.NewDigitalPin(25)
-  if err != nil {
-    panic(err)
-  }
-  defer gdo2.Close()
-
   gdo0.SetDirection(embd.In)
-  gdo2.SetDirection(embd.In)
 
   bus := embd.NewSPIBus(embd.SPIMode0, 0, 50000, 8, 0)
   defer bus.Close()
@@ -337,19 +329,13 @@ func main() {
   cc1101.SelfTest()
   cc1101.Init()
 
-  for {
-    cc1101.SetIdle()
-    cc1101.SetRx()
-    log.Print("Waiting for packets...")
-    for {
-      flag, err := gdo0.Read()
-      if err != nil {
-        panic(err)
-      }
-      if flag > 0 {
-        break
-      }
-    }
+  cc1101.SetIdle()
+  cc1101.SetRx()
+  log.Print("Waiting for packets...")
+  gdo0.Watch(embd.EdgeRising, func(pin embd.DigitalPin) {
+    defer cc1101.SetRx()
+    defer cc1101.SetIdle()
+
     log.Print("Received something!")
     time.Sleep(time.Microsecond * 50)
     recv, err := cc1101.Receive()
@@ -358,6 +344,7 @@ func main() {
     } else {
       log.Printf("Received: %v\n", recv)
     }
-  }
+  })
+  select{}
 }
 
