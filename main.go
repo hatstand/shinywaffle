@@ -192,6 +192,7 @@ func (c *CC1101) Init() error {
   c.WriteSingleByte(TEST0, config.TEST0)
 
   c.WriteSingleByte(IOCFG2, config.IOCFG2)
+  c.WriteSingleByte(IOCFG1, config.IOCFG1)
   c.WriteSingleByte(IOCFG0, config.IOCFG0)
 
   // Two status bytes appended to payload: RSSI LQI and CRC OK.
@@ -332,6 +333,7 @@ func main() {
   cc1101.SetIdle()
   cc1101.SetRx()
   log.Print("Waiting for packets...")
+  packetCh := make(chan []byte)
   gdo0.Watch(embd.EdgeRising, func(pin embd.DigitalPin) {
     defer cc1101.SetRx()
     defer cc1101.SetIdle()
@@ -342,9 +344,15 @@ func main() {
     if err != nil {
       log.Println("Failed to receive: ", err)
     } else {
-      log.Printf("Received: %v\n", recv)
+      packetCh <- recv
     }
   })
-  select{}
+
+  for {
+    select{
+      case p := <-packetCh:
+        log.Printf("Received packet: %v\n", p)
+    }
+  }
 }
 
