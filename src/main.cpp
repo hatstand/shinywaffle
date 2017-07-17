@@ -1,17 +1,11 @@
-/**
- * Blink
- *
- * Turns on an LED on for one second,
- * then off for one second, repeatedly.
- */
 #include "Arduino.h"
 
 #include <SPI.h>
+#include <Wire.h>
+
+using namespace std;
 
 const int kSlaveSelectPin = 10;
-
-// Set LED_BUILTIN if it is not defined by Arduino framework
-// #define LED_BUILTIN 13
 
 class SPITransaction {
  public:
@@ -23,6 +17,59 @@ class SPITransaction {
   ~SPITransaction() {
     digitalWrite(kSlaveSelectPin, HIGH);
     SPI.endTransaction();
+  }
+};
+
+class SHT31D {
+  static const uint8_t kSensorAddress = 0x44;
+  static const uint16_t kSoftReset = 0x30a2;
+  static const uint16_t kReadSensor = 0x2400;
+
+ public:
+  void Init() {
+    WriteCommand(kSoftReset);
+    delay(10);
+  }
+
+  struct Reading {
+    float temperature;
+    float humidity;
+
+    Reading(float temperature, float humidity)
+        : temperature(temperature),
+          humidity(humidity) {}
+  };
+
+ private:
+  static float ConvertTemperature(uint16_t raw_temp) {
+    return -45 + 175 * (float(raw_temp) / 0xffff);
+  }
+
+  static float ConvertHumidity(uint16_t raw_humidity) {
+    return 100 * (float(raw_humidity) / 0xffff);
+  }
+
+  static bool WriteCommand(uint16_t command) {
+    Wire.beginTransmission(kSensorAddress);
+    Wire.write(command >> 8);
+    Wire.write(command & 0xff);
+    return Wire.endTransmission() == 0;
+  }
+
+ public:
+  Reading ReadTemperatureAndHumidity() {
+    WriteCommand(kReadSensor);
+    delay(500);
+    Wire.requestFrom(kSensorAddress, uint8_t(6));
+    if (Wire.available() == 6) {
+      uint16_t raw_temp = (Wire.read() << 8) | (Wire.read() & 0xff);
+      uint8_t temp_crc = Wire.read();
+      uint16_t raw_humidity = (Wire.read() << 8) | (Wire.read() & 0xff);
+      uint8_t humidity_crc = Wire.read();
+      return Reading(ConvertTemperature(raw_temp), ConvertHumidity(raw_humidity));
+    }
+    Serial.println("Failed to read sensor");
+    return Reading(0.0f, 0.0f);
   }
 };
 
@@ -40,8 +87,9 @@ byte readReg(byte addr) {
   return reply;
 }
 
-void setup()
-{
+static SHT31D sensor;
+
+void setup() {
   // initialize LED digital pin as an output.
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -51,10 +99,14 @@ void setup()
   Serial.begin(9600);
 
   SPI.begin();
+  Wire.begin();
+
+  sensor.Init();
+
+  delay(100);
 }
 
-void loop()
-{
+void loop() {
   // turn the LED on (HIGH is the voltage level)
   digitalWrite(LED_BUILTIN, HIGH);
 
@@ -69,8 +121,9 @@ void loop()
    // wait for a second
   delay(1000);
 
-  reset();
-
-  Serial.println(readReg(0xf0));
-  Serial.println(readReg(0xf1));
+  SHT31D::Reading reading = sensor.ReadTemperatureAndHumidity();
+  Serial.print(reading.temperature);
+  Serial.println();
+  Serial.print(reading.humidity);
+  Serial.println();
 }
