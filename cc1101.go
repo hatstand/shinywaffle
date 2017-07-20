@@ -12,8 +12,8 @@ import (
 	_ "github.com/kidoman/embd/host/rpi"
 )
 
-var gdo0pin = flag.Int("gdo0", 24, "GPIO pin connected to CC1101 GDO0 (BCM numbering")
-var gdo2pin = flag.Int("gdo2", 25, "GPIO pin connected to CC1101 GDO2 (BCM numbering")
+var gdo0pin = flag.Int("gdo0", 24, "GPIO pin connected to CC1101 GDO0 (BCM numbering)")
+var gdo2pin = flag.Int("gdo2", 25, "GPIO pin connected to CC1101 GDO2 (BCM numbering)")
 
 const (
 	// Read/write flags.
