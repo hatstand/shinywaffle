@@ -207,11 +207,16 @@ func main() {
 				log.Printf("Failed to upload reading: %v", err)
 			}
 		case <-t:
+			// Watchdog to keep an eye on the CC1101 state.
 			status, err := cc1101.Strobe(shinywaffle.SNOP)
 			if err != nil {
 				log.Println("Failed to read chip status")
 			} else {
 				log.Printf("Chip status: %#02x\n", status)
+				if ((status & shinywaffle.STATE) >> 4) != 0x01 {
+					log.Printf("Chip somehow not in RX mode")
+					cc1101.SetRx()
+				}
 			}
 		case <-signalCh:
 			log.Printf("Shutting down...")

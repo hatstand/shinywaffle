@@ -27,6 +27,9 @@ const (
 	TXFIFO          = 0x3f
 	OVERFLOW        = 0x80
 
+	// Bitmask for reading state out of chip status byte.
+	STATE = 0x70
+
 	CRC_OK      = 0x80
 	RSSI        = 0
 	LQI         = 1
