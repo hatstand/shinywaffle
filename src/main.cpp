@@ -288,6 +288,11 @@ void setup() {
   delay(100);
 }
 
+void Send(uint16_t temp, uint16_t humidity) {
+  byte packet[] = {byte(temp >> 8), byte(temp & 0xff), byte(humidity >> 8), byte(humidity & 0xff)};
+  radio.SendPacket(packet, sizeof(packet));
+}
+
 void loop() {
   Serial.write("Hello world!\n");
 
@@ -300,8 +305,7 @@ void loop() {
   uint16_t temp = uint16_t(reading.temperature * 100.0f);
   uint16_t humidity = uint16_t(reading.humidity * 100.0f);
 
-  byte packet[] = {byte(temp >> 8), byte(temp & 0xff), byte(humidity >> 8), byte(humidity & 0xff)};
-  radio.SendPacket(packet, sizeof(packet));
+  Send(temp, humidity);
 
   // Sleep for 32s in low power mode.
   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
