@@ -115,7 +115,7 @@ func UploadReading(reading *Reading, srv *sheets.Service) error {
 	log.Printf("Uploading reading for: %s", reading.Location)
 	values := &sheets.ValueRange{
 		MajorDimension: "ROWS",
-		Values:         [][]interface{}{[]interface{}{reading.Location, reading.Temperature, reading.Humidity, reading.Timestamp}},
+		Values:         [][]interface{}{[]interface{}{reading.Location, reading.Temperature, reading.Humidity, reading.Timestamp.Unix()}},
 	}
 	req := srv.Spreadsheets.Values.Append(*spreadsheetId, "A1", values)
 	req.ValueInputOption("RAW")
@@ -127,7 +127,7 @@ func UploadReading(reading *Reading, srv *sheets.Service) error {
 }
 
 func main() {
-	runtime.GOMAXPROCS(4)
+	runtime.GOMAXPROCS(8)
 	flag.Parse()
 
 	err := embd.InitI2C()
@@ -184,6 +184,8 @@ func main() {
 
 	log.Printf("Listening for packets...\n")
 
+	t := time.Tick(10 * time.Second)
+
 	for {
 		select {
 		case p := <-packetCh:
@@ -204,7 +206,15 @@ func main() {
 			if err != nil {
 				log.Printf("Failed to upload reading: %v", err)
 			}
+		case <-t:
+			status, err := cc1101.Strobe(shinywaffle.SNOP)
+			if err != nil {
+				log.Println("Failed to read chip status")
+			} else {
+				log.Printf("Chip status: %#02x\n", status)
+			}
 		case <-signalCh:
+			log.Printf("Shutting down...")
 			return
 		}
 	}

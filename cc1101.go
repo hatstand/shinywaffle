@@ -39,6 +39,7 @@ const (
 	SIDLE = 0x36
 	SFRX  = 0x3a // Flush RX FIFO buffer
 	SFTX  = 0x3b // Flush TX FIFO buffer
+	SNOP  = 0x3d
 
 	// Status Registers
 	PARTNUM = 0xf0
@@ -171,6 +172,7 @@ func NewCC1101(packetCh chan<- []byte) CC1101 {
 
 	log.Print("Waiting for packets...")
 	gdo0.Watch(embd.EdgeRising, func(pin embd.DigitalPin) {
+		log.Println("Packet arrived")
 		defer cc1101.SetRx()
 		defer cc1101.SetIdle()
 
@@ -186,6 +188,7 @@ func NewCC1101(packetCh chan<- []byte) CC1101 {
 }
 
 func (c *CC1101) Close() {
+	c.Strobe(SRES)
 	c.bus.Close()
 	c.gdo0.Close()
 	c.gdo2.Close()
@@ -193,9 +196,13 @@ func (c *CC1101) Close() {
 	embd.CloseSPI()
 }
 
-func (cc1101 *CC1101) Strobe(address byte) error {
+func (cc1101 *CC1101) Strobe(address byte) (byte, error) {
 	data := []byte{address, 0x00}
-	return cc1101.bus.TransferAndReceiveData(data)
+	err := cc1101.bus.TransferAndReceiveData(data)
+	if err != nil {
+		return 0, err
+	}
+	return data[0], nil
 }
 
 func (cc1101 *CC1101) ReadSingleByte(address byte) (byte, error) {
@@ -239,7 +246,8 @@ func (c *CC1101) WriteBurst(address byte, data []byte) error {
 }
 
 func (cc1101 *CC1101) Reset() error {
-	return cc1101.Strobe(SRES)
+	_, err := cc1101.Strobe(SRES)
+	return err
 }
 
 func (c *CC1101) Init() error {
@@ -319,25 +327,33 @@ func (cc1101 *CC1101) SetSyncWord(word uint16) error {
 	return cc1101.WriteSingleByte(SYNC0, byte(word&0xff))
 }
 
-func (cc1101 *CC1101) SetRx() error {
-	return cc1101.Strobe(SRX)
+func (c *CC1101) SetState(state byte) error {
+	log.Printf("Setting chip state: %#02x\n", state)
+	_, err := c.Strobe(state)
+	// Worst case state change is ~1ms for IDLE -> RX with calibration.
+	time.Sleep(1)
+	return err
+}
+
+func (c *CC1101) SetRx() error {
+	return c.SetState(SRX)
 }
 
 func (c *CC1101) SetTx() error {
-	return c.Strobe(STX)
+	return c.SetState(STX)
 }
 
 func (c *CC1101) SetIdle() error {
-	return c.Strobe(SIDLE)
+	return c.SetState(SIDLE)
 }
 
 func (c *CC1101) FlushRx() {
-	c.Strobe(SIDLE)
-	time.Sleep(50 * time.Microsecond)
+	c.SetState(SIDLE)
 	c.Strobe(SFRX)
 }
 
 func (c *CC1101) Receive() ([]byte, error) {
+	log.Println("Receiving packet...")
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
