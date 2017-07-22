@@ -17,6 +17,9 @@ import (
 	"time"
 
 	"github.com/hatstand/shinywaffle"
+	"github.com/hatstand/shinywaffle/sensors/sht31"
+	"github.com/kidoman/embd"
+	_ "github.com/kidoman/embd/host/rpi"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -101,9 +104,39 @@ func parsePacket(packet []byte) (float32, float32, error) {
 	return temp, humidity, nil
 }
 
+type Reading struct {
+	Temperature float32
+	Humidity    float32
+	Location    string
+	Timestamp   time.Time
+}
+
+func UploadReading(reading *Reading, srv *sheets.Service) error {
+	log.Printf("Uploading reading for: %s", reading.Location)
+	values := &sheets.ValueRange{
+		MajorDimension: "ROWS",
+		Values:         [][]interface{}{[]interface{}{reading.Location, reading.Temperature, reading.Humidity, reading.Timestamp}},
+	}
+	req := srv.Spreadsheets.Values.Append(*spreadsheetId, "A1", values)
+	req.ValueInputOption("RAW")
+	_, err := req.Do()
+	if err != nil {
+		return fmt.Errorf("Failed to upload to sheets: %v", err)
+	}
+	return nil
+}
+
 func main() {
 	runtime.GOMAXPROCS(4)
 	flag.Parse()
+
+	err := embd.InitI2C()
+	if err != nil {
+		log.Fatalf("Failed to initialize I2C: %v", err)
+	}
+
+	bus := embd.NewI2CBus(1)
+	defer bus.Close()
 
 	ctx := context.Background()
 	b, err := ioutil.ReadFile("client_secret.json")
@@ -120,6 +153,26 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to retrieve Sheets Client: %v", err)
 	}
+
+	ch := make(chan *Reading, 10)
+	sht31 := sht31.NewSHT31(bus, sht31.DEFAULT_ADDR)
+	go func() {
+		c := time.Tick(30 * time.Second)
+		for _ = range c {
+			log.Printf("Reading local sensor...")
+			temp, humidity, err := sht31.ReadTempAndHum()
+			if err != nil {
+				log.Printf("Failed to read local sensor: %v", err)
+				continue
+			}
+			ch <- &Reading{
+				Location:    "Hallway",
+				Temperature: temp,
+				Humidity:    humidity,
+				Timestamp:   time.Now(),
+			}
+		}
+	}()
 
 	packetCh := make(chan []byte, 10)
 	cc1101 := shinywaffle.NewCC1101(packetCh)
@@ -139,14 +192,17 @@ func main() {
 			if err != nil {
 				log.Printf("Failed to parse packet: %v\n", err)
 			} else {
-				values := &sheets.ValueRange{
-					MajorDimension: "ROWS",
-					Values:         [][]interface{}{[]interface{}{"Kitchen", temp, humidity, time.Now()}},
+				ch <- &Reading{
+					Location:    "Kitchen",
+					Temperature: temp,
+					Humidity:    humidity,
+					Timestamp:   time.Now(),
 				}
-				_, err := srv.Spreadsheets.Values.Append(*spreadsheetId, "A1", values).ValueInputOption("RAW").Do()
-				if err != nil {
-					log.Printf("Failed to update spreadsheet: %v", err)
-				}
+			}
+		case reading := <-ch:
+			err = UploadReading(reading, srv)
+			if err != nil {
+				log.Printf("Failed to upload reading: %v", err)
 			}
 		case <-signalCh:
 			return
