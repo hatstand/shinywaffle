@@ -290,19 +290,7 @@ void setup() {
 }
 
 void loop() {
-  // turn the LED on (HIGH is the voltage level)
-  digitalWrite(LED_BUILTIN, HIGH);
-
-  // wait for a second
-  delay(1000);
-
-  // turn the LED off by making the voltage LOW
-  digitalWrite(LED_BUILTIN, LOW);
-
   Serial.write("Hello world!\n");
-
-   // wait for a second
-  delay(1000);
 
   SHT31D::Reading reading = sensor.ReadTemperatureAndHumidity();
   Serial.print(reading.temperature);
@@ -315,4 +303,7 @@ void loop() {
 
   byte packet[] = {byte(temp >> 8), byte(temp & 0xff), byte(humidity >> 8), byte(humidity & 0xff)};
   radio.SendPacket(packet, sizeof(packet));
+
+   // wait for a bit
+  delay(30000);
 }
