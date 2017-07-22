@@ -3,6 +3,8 @@
 #include <SPI.h>
 #include <Wire.h>
 
+#include "LowPower.h"
+
 #include "cc1101_868_3.h"
 
 class SPITransaction {
@@ -275,9 +277,6 @@ static SHT31D sensor;
 static CC1101 radio;
 
 void setup() {
-  // initialize LED digital pin as an output.
-  pinMode(LED_BUILTIN, OUTPUT);
-
   Serial.begin(115200);
 
   Wire.begin();
@@ -304,6 +303,9 @@ void loop() {
   byte packet[] = {byte(temp >> 8), byte(temp & 0xff), byte(humidity >> 8), byte(humidity & 0xff)};
   radio.SendPacket(packet, sizeof(packet));
 
-   // wait for a bit
-  delay(30000);
+  // Sleep for 32s in low power mode.
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 }
