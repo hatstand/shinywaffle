@@ -3,62 +3,10 @@
 #include <Wire.h>
 
 #include "LowPower.h"
+#include "SHT31D.h"
 #include "spi_transaction.h"
 
 #include "cc1101_868_3.h"
-
-class SHT31D {
-  static const uint8_t kSensorAddress = 0x44;
-  static const uint16_t kSoftReset = 0x30a2;
-  static const uint16_t kReadSensor = 0x2400;
-
- public:
-  void Init() {
-    WriteCommand(kSoftReset);
-    delay(10);
-  }
-
-  struct Reading {
-    float temperature;
-    float humidity;
-
-    Reading(float temperature, float humidity)
-        : temperature(temperature),
-          humidity(humidity) {}
-  };
-
- private:
-  static float ConvertTemperature(uint16_t raw_temp) {
-    return -45 + 175 * (float(raw_temp) / 0xffff);
-  }
-
-  static float ConvertHumidity(uint16_t raw_humidity) {
-    return 100 * (float(raw_humidity) / 0xffff);
-  }
-
-  static bool WriteCommand(uint16_t command) {
-    Wire.beginTransmission(kSensorAddress);
-    Wire.write(command >> 8);
-    Wire.write(command & 0xff);
-    return Wire.endTransmission() == 0;
-  }
-
- public:
-  Reading ReadTemperatureAndHumidity() {
-    WriteCommand(kReadSensor);
-    delay(500);
-    Wire.requestFrom(kSensorAddress, uint8_t(6));
-    if (Wire.available() == 6) {
-      uint16_t raw_temp = (Wire.read() << 8) | (Wire.read() & 0xff);
-      uint8_t temp_crc = Wire.read();
-      uint16_t raw_humidity = (Wire.read() << 8) | (Wire.read() & 0xff);
-      uint8_t humidity_crc = Wire.read();
-      return Reading(ConvertTemperature(raw_temp), ConvertHumidity(raw_humidity));
-    }
-    Serial.println("Failed to read sensor");
-    return Reading(0.0f, 0.0f);
-  }
-};
 
 class CC1101 {
  private:
