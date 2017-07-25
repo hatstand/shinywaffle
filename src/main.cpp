@@ -39,11 +39,7 @@ void loop() {
   uint16_t temp = uint16_t(reading.temperature * 100.0f);
   uint16_t humidity = uint16_t(reading.humidity * 100.0f);
 
-  radio.Wake();
-
   Send(temp, humidity);
-
-  radio.Sleep();
 
   // Sleep for 32s in low power mode.
   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);

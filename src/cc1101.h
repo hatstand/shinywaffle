@@ -11,6 +11,17 @@ class CC1101 {
   void Reset();
 
  private:
+  class WakeLock {
+   public:
+    WakeLock(const CC1101* cc1101);
+    ~WakeLock();
+
+   private:
+    WakeLock(const WakeLock&);
+
+    const CC1101* cc1101_;
+  };
+
   byte ReadRegister(byte addr);
   void WriteByte(byte address, byte data);
   void Strobe(byte command);

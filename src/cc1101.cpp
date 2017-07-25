@@ -44,6 +44,7 @@ void CC1101::ReadBurst(byte address, byte* buffer, int length) {
 
 void CC1101::SendPacket(byte* buffer, byte length) {
   Serial.println("Sending packet");
+  WakeLock lock(this);
   WriteByte(kTXFIFO, length);
   WriteBurst(kTXFIFO, buffer, length);
   // Send the packet.
@@ -68,6 +69,15 @@ void CC1101::Sleep() {
 void CC1101::Wake() {
   Strobe(kSIDLE);
   delay(1);  // Should only take 240us.
+}
+
+CC1101::WakeLock::WakeLock(const CC1101* cc1101)
+  : cc1101_(cc1101) {
+  cc1101_->Wake();
+}
+
+CC1101::WakeLock::~WakeLock() {
+  cc1101_->Sleep();
 }
 
 void CC1101::Reset() {
@@ -131,4 +141,7 @@ void CC1101::Reset() {
 
   Serial.print(ReadRegister(0xf0));
   Serial.print(ReadRegister(0xf1));
+
+  // Always Be Sleeping.
+  Sleep();
 }
