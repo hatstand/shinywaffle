@@ -1,28 +1,11 @@
-#include "Arduino.h"
-
+#include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>
 
 #include "LowPower.h"
+#include "spi_transaction.h"
 
 #include "cc1101_868_3.h"
-
-class SPITransaction {
- public:
-  SPITransaction(int slave_select_pin)
-      : slave_select_pin_(slave_select_pin) {
-    digitalWrite(slave_select_pin_, LOW);
-    SPI.beginTransaction(SPISettings(50000, MSBFIRST, SPI_MODE0));
-  }
-
-  ~SPITransaction() {
-    digitalWrite(slave_select_pin_, HIGH);
-    SPI.endTransaction();
-  }
-
- private:
-  const int slave_select_pin_;
-};
 
 class SHT31D {
   static const uint8_t kSensorAddress = 0x44;
@@ -88,10 +71,11 @@ class CC1101 {
   const byte kReadBurst = 0xc0;
   const byte kReadSingleByte = 0x80;
 
-  const byte kSRES = 0x30;
-  const byte kSTX = 0x35;
-  const byte kSFTX = 0x3b;
-  const byte kSIDLE = 0x36;
+  const byte kSRES = 0x30;  // Reset
+  const byte kSTX = 0x35;   // Transmit mode
+  const byte kSFTX = 0x3b;  // Flush TX FIFO buffer
+  const byte kSIDLE = 0x36; // Idle mode
+  const byte kSPWD = 0x39;  // Sleep mode
 
   const byte kIOCFG0Config = 0x07;
   const byte kIOCFG1Config = 0x2e;
@@ -209,6 +193,15 @@ class CC1101 {
     Serial.println("Sent packet");
   }
 
+  void Sleep() {
+    Strobe(kSPWD);
+  }
+
+  void Wake() {
+    Strobe(kSIDLE);
+    delay(1);  // Should only take 240us.
+  }
+
   void Reset() {
     pinMode(kGDO0Pin, INPUT);
     pinMode(kGDO2Pin, INPUT);
@@ -305,7 +298,11 @@ void loop() {
   uint16_t temp = uint16_t(reading.temperature * 100.0f);
   uint16_t humidity = uint16_t(reading.humidity * 100.0f);
 
+  radio.Wake();
+
   Send(temp, humidity);
+
+  radio.Sleep();
 
   // Sleep for 32s in low power mode.
   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
