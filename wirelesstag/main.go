@@ -14,6 +14,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/dchest/uniuri"
@@ -22,6 +23,7 @@ import (
 
 var clientSecret = flag.String("secret", "", "OAuth2 client secret for WirelessTag")
 var clientId = flag.String("client", "", "OAuth2 client id for WirelessTag")
+var port = flag.Int("port", 8080, "Port for OAuth2 flow")
 
 func exchangeToken(config *oauth2.Config, code string) (*oauth2.Token, error) {
 	response, err := http.PostForm(
@@ -77,7 +79,7 @@ func tokenFromWeb(ctx context.Context, config *oauth2.Config) (token *oauth2.Tok
 	state := uniuri.New()
 	mux := http.NewServeMux()
 	srv := &http.Server{
-		Addr:    "localhost:8080",
+		Addr:    "localhost:" + strconv.Itoa(*port),
 		Handler: mux,
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +139,7 @@ func main() {
 			AuthURL:  "https://www.mytaglist.com/oauth2/authorize.aspx",
 			TokenURL: "https://www.mytaglist.com/oauth2/access_token.aspx",
 		},
-		RedirectURL: "http://localhost:8080",
+		RedirectURL: "http://localhost:" + strconv.Itoa(*port) + "/",
 	}
 
 	client := getClient(ctx, conf)
