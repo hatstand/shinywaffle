@@ -104,3 +104,37 @@ func TestSendPacket(t *testing.T) {
 		cc1101.Send(packet)
 	}))
 }
+
+func TestReceivePacket(t *testing.T) {
+	Convey("Send", t, WithBusAndPins(t, func(bus *mocks.MockSPIBus, gdo0 *mocks.MockDigitalPin, gdo2 *mocks.MockDigitalPin, cc1101 *CC1101) {
+		addr := byte(RXFIFO | READ_BURST)
+		packet := []byte{0x42, 0x43, 0x44}
+		response := []byte{0x00}
+		response = append(response, packet...)
+		gomock.InOrder(
+			// Read RXBYTES for fifo length and overflow.
+			bus.EXPECT().TransferAndReceiveData([]byte{RXBYTES | READ_SINGLE_BYTE, 0x00}).Return(nil).SetArg(0, []byte{0x00, 0x03}),
+			// Read first RXFIFO byte for packet length.
+			bus.EXPECT().TransferAndReceiveData([]byte{RXFIFO | READ_SINGLE_BYTE, 0x00}).Return(nil).SetArg(0, []byte{0x00, 0x03}),
+			// Read packet data out of RXFIFO.
+			bus.EXPECT().TransferAndReceiveData([]byte{
+				addr,
+				addr + 1*8 | READ_BURST,
+				addr + 2*8 | READ_BURST,
+				addr + 3*8 | READ_BURST,
+			}).SetArg(0, response),
+			// Read packet status bytes.
+			bus.EXPECT().TransferAndReceiveData([]byte{
+				addr,
+				addr + 1*8 | READ_BURST,
+				addr + 2*8 | READ_BURST,
+			}),
+			// Flush RX buffer.
+			bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}),
+			bus.EXPECT().TransferAndReceiveData([]byte{SFRX, 0x00}),
+		)
+		recv, err := cc1101.Receive()
+		So(err, ShouldBeNil)
+		So(recv, ShouldResemble, packet)
+	}))
+}
