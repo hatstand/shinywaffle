@@ -45,3 +45,18 @@ func TestReset(t *testing.T) {
 		So(cc1101.Reset(), ShouldBeNil)
 	}))
 }
+
+func TestSetState(t *testing.T) {
+	Convey("RX", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+		bus.EXPECT().TransferAndReceiveData([]byte{SRX, 0x00}).Return(nil)
+		So(cc1101.SetRx(), ShouldBeNil)
+	}))
+	Convey("TX", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+		bus.EXPECT().TransferAndReceiveData([]byte{STX, 0x00}).Return(nil)
+		So(cc1101.SetTx(), ShouldBeNil)
+	}))
+	Convey("IDLE", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+		bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}).Return(nil)
+		So(cc1101.SetIdle(), ShouldBeNil)
+	}))
+}
