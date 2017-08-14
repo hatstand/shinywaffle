@@ -9,18 +9,30 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func WithMocks(t *testing.T, f func(bus *mocks.MockSPIBus, cc1101 *CC1101)) func() {
+func WithBusAndPins(t *testing.T, f func(bus *mocks.MockSPIBus, gdo0 *mocks.MockDigitalPin, gdo2 *mocks.MockDigitalPin, cc1101 *CC1101)) func() {
 	return func() {
 		mock := gomock.NewController(t)
 		defer mock.Finish()
 		bus := mocks.NewMockSPIBus(mock)
-		cc1101 := &CC1101{bus: bus}
-		f(bus, cc1101)
+		gdo0 := mocks.NewMockDigitalPin(mock)
+		gdo2 := mocks.NewMockDigitalPin(mock)
+		cc1101 := &CC1101{
+			bus:  bus,
+			gdo0: gdo0,
+			gdo2: gdo2,
+		}
+		f(bus, gdo0, gdo2, cc1101)
 	}
 }
 
+func WithBus(t *testing.T, f func(bus *mocks.MockSPIBus, cc1101 *CC1101)) func() {
+	return WithBusAndPins(t, func(bus *mocks.MockSPIBus, gdo0 *mocks.MockDigitalPin, gdo2 *mocks.MockDigitalPin, cc1101 *CC1101) {
+		f(bus, cc1101)
+	})
+}
+
 func TestSelfTest(t *testing.T) {
-	Convey("Init", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+	Convey("Init", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
 		bus.EXPECT().TransferAndReceiveData([]byte{VERSION | READ_SINGLE_BYTE, 0x00}).Return(nil).SetArg(0, []byte{0x00, 0x14})
 		bus.EXPECT().TransferAndReceiveData([]byte{PARTNUM | READ_SINGLE_BYTE, 0x00}).Return(nil).SetArg(0, []byte{0x00, 0x00})
 
@@ -29,7 +41,7 @@ func TestSelfTest(t *testing.T) {
 }
 
 func TestStrobe(t *testing.T) {
-	Convey("Strobe", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+	Convey("Strobe", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
 		bus.EXPECT().TransferAndReceiveData([]byte{0x42, 0x00}).Return(nil).SetArg(0, []byte{0x43, 0x00})
 
 		ret, err := cc1101.Strobe(0x42)
@@ -39,7 +51,7 @@ func TestStrobe(t *testing.T) {
 }
 
 func TestReset(t *testing.T) {
-	Convey("Reset", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+	Convey("Reset", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
 		bus.EXPECT().TransferAndReceiveData([]byte{SRES, 0x00}).Return(nil)
 
 		So(cc1101.Reset(), ShouldBeNil)
@@ -47,23 +59,48 @@ func TestReset(t *testing.T) {
 }
 
 func TestSetState(t *testing.T) {
-	Convey("RX", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+	Convey("RX", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
 		bus.EXPECT().TransferAndReceiveData([]byte{SRX, 0x00}).Return(nil)
 		So(cc1101.SetRx(), ShouldBeNil)
 	}))
-	Convey("TX", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+	Convey("TX", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
 		bus.EXPECT().TransferAndReceiveData([]byte{STX, 0x00}).Return(nil)
 		So(cc1101.SetTx(), ShouldBeNil)
 	}))
-	Convey("IDLE", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+	Convey("IDLE", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
 		bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}).Return(nil)
 		So(cc1101.SetIdle(), ShouldBeNil)
 	}))
-	Convey("Flush RX buffer", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+	Convey("Flush RX buffer", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
 		gomock.InOrder(
 			bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}).Return(nil),
 			bus.EXPECT().TransferAndReceiveData([]byte{SFRX, 0x00}).Return(nil),
 		)
 		cc1101.FlushRx()
+	}))
+}
+
+func TestSendPacket(t *testing.T) {
+	Convey("Send", t, WithBusAndPins(t, func(bus *mocks.MockSPIBus, gdo0 *mocks.MockDigitalPin, gdo2 *mocks.MockDigitalPin, cc1101 *CC1101) {
+		packet := []byte{0x42, 0x43, 0x44}
+		gomock.InOrder(
+			// Write the packet length.
+			bus.EXPECT().TransferAndReceiveData([]byte{TXFIFO | WRITE_SINGLE_BYTE, 3}),
+			// Write the packet data.
+			bus.EXPECT().TransferAndReceiveData([]byte{TXFIFO | WRITE_BURST, 0x42, 0x43, 0x44}),
+			// Switch to send mode.
+			bus.EXPECT().TransferAndReceiveData([]byte{STX, 0x00}),
+			// Wait for sync word to transmit (rising edge on gdo2).
+			gdo2.EXPECT().Read().Return(1, nil),
+			// Wait for packet data to transmit (falling edge on gdo2).
+			gdo2.EXPECT().Read().Return(0, nil),
+			// Switch back to idle mode when finished.
+			bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}),
+			// Flush the TX buffer.
+			bus.EXPECT().TransferAndReceiveData([]byte{SFTX, 0x00}),
+			// Return to RX mode.
+			bus.EXPECT().TransferAndReceiveData([]byte{SRX, 0x00}),
+		)
+		cc1101.Send(packet)
 	}))
 }
