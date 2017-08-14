@@ -37,3 +37,11 @@ func TestStrobe(t *testing.T) {
 		So(ret, ShouldEqual, 0x43)
 	}))
 }
+
+func TestReset(t *testing.T) {
+	Convey("Reset", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+		bus.EXPECT().TransferAndReceiveData([]byte{SRES, 0x00}).Return(nil)
+
+		So(cc1101.Reset(), ShouldBeNil)
+	}))
+}
