@@ -25,6 +25,19 @@ var clientSecret = flag.String("secret", "", "OAuth2 client secret for WirelessT
 var clientId = flag.String("client", "", "OAuth2 client id for WirelessTag")
 var port = flag.Int("port", 8080, "Port for OAuth2 flow")
 
+type Tag struct {
+	Name             string  `json:"name"`
+	Temperature      float64 `json:"temperature"`
+	UUID             string  `json:"uuid"`
+	SignaldBm        float64 `json:"signaldBm"`
+	BatteryRemaining float64 `json:"batteryRemaining"`
+	Humidity         float64 `json:"cap"`
+}
+
+type TagList struct {
+	Tag []Tag `json:"d"`
+}
+
 func exchangeToken(config *oauth2.Config, code string) (*oauth2.Token, error) {
 	response, err := http.PostForm(
 		config.Endpoint.TokenURL,
@@ -143,15 +156,21 @@ func main() {
 	}
 
 	client := getClient(ctx, conf)
-	json := []byte(`{id:1, beepDuration:1}`)
-	resp, err := client.Post("https://www.mytaglist.com/ethClient.asmx/Beep", "application/json", bytes.NewBuffer(json))
+	resp, err := client.Post("https://www.mytaglist.com/ethClient.asmx/GetTagListCached", "application/json", bytes.NewBuffer([]byte(`{}`)))
 	if err != nil {
 		log.Fatalf("Failed to fetch stuff: %v", err)
 	}
+
 	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Failed to read body: %v", err)
-	}
 	resp.Body.Close()
-	fmt.Printf("%s\n", data)
+
+	var tags TagList
+	err = json.Unmarshal(data, &tags)
+	if err != nil {
+		log.Fatalf("Failed to decode JSON: %v", err)
+	}
+
+	for _, t := range tags.Tag {
+		fmt.Println(t)
+	}
 }
