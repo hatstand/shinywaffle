@@ -59,4 +59,11 @@ func TestSetState(t *testing.T) {
 		bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}).Return(nil)
 		So(cc1101.SetIdle(), ShouldBeNil)
 	}))
+	Convey("Flush RX buffer", t, WithMocks(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+		gomock.InOrder(
+			bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}).Return(nil),
+			bus.EXPECT().TransferAndReceiveData([]byte{SFRX, 0x00}).Return(nil),
+		)
+		cc1101.FlushRx()
+	}))
 }
