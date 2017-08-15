@@ -1,17 +1,4 @@
-language: python
+language: go
 
-python:
-  - "2.7"
-
-cache:
-  directories:
-    - "~/.platformio"
-
-env:
-  - PLATFORMIO_CI_SRC=src
-
-install:
-  - pip install -U platformio
-
-script:
-  - platformio ci --board=pro8MHzatmega328
+go:
+  - 1.8.x
