@@ -139,6 +139,14 @@ func TestReceivePacket(t *testing.T) {
 	}))
 }
 
+func TestSetSyncWord(t *testing.T) {
+	Convey("SetSyncWord", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
+		bus.EXPECT().TransferAndReceiveData([]byte{SYNC1 | WRITE_SINGLE_BYTE, 0x42})
+		bus.EXPECT().TransferAndReceiveData([]byte{SYNC0 | WRITE_SINGLE_BYTE, 0x43})
+		cc1101.SetSyncWord(0x4243)
+	}))
+}
+
 func expectTransferAndReceive(bus *mocks.MockSPIBus, in []byte, out []byte) *gomock.Call {
 	return bus.EXPECT().TransferAndReceiveData(in).Return(nil).Do(func(in []byte) {
 		copy(in, out)
