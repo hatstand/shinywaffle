@@ -30,3 +30,11 @@ func TestExchangeToken(t *testing.T) {
 		So(token.Expiry, ShouldEqual, time.Unix(0, 0))
 	})
 }
+
+func TestCacheDir(t *testing.T) {
+	Convey("Cache file path", t, func() {
+		path, err := tokenCacheFile()
+		So(err, ShouldBeNil)
+		So(path, ShouldEndWith, ".credentials/mytaglist.json")
+	})
+}
