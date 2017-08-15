@@ -143,7 +143,7 @@ func TestSetSyncWord(t *testing.T) {
 	Convey("SetSyncWord", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
 		bus.EXPECT().TransferAndReceiveData([]byte{SYNC1 | WRITE_SINGLE_BYTE, 0x42})
 		bus.EXPECT().TransferAndReceiveData([]byte{SYNC0 | WRITE_SINGLE_BYTE, 0x43})
-		cc1101.SetSyncWord(0x4243)
+		So(cc1101.SetSyncWord(0x4243), ShouldBeNil)
 	}))
 }
 
