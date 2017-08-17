@@ -33,8 +33,8 @@ func WithBus(t *testing.T, f func(bus *mocks.MockSPIBus, cc1101 *CC1101)) func()
 
 func TestSelfTest(t *testing.T) {
 	Convey("Init", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
-		expectTransferAndReceive(bus, []byte{VERSION | READ_SINGLE_BYTE, 0x00}, []byte{0x00, 0x14})
-		expectTransferAndReceive(bus, []byte{PARTNUM | READ_SINGLE_BYTE, 0x00}, []byte{0x00, 0x00})
+		bus.EXPECT().TransferAndReceiveData([]byte{VERSION | READ_SINGLE_BYTE, 0x00}).Return(nil).SetArg(0, []byte{0x00, 0x14})
+		bus.EXPECT().TransferAndReceiveData([]byte{PARTNUM | READ_SINGLE_BYTE, 0x00}).Return(nil).SetArg(0, []byte{0x00, 0x00})
 
 		So(cc1101.SelfTest(), ShouldBeNil)
 	}))
@@ -42,7 +42,7 @@ func TestSelfTest(t *testing.T) {
 
 func TestStrobe(t *testing.T) {
 	Convey("Strobe", t, WithBus(t, func(bus *mocks.MockSPIBus, cc1101 *CC1101) {
-		expectTransferAndReceive(bus, []byte{0x42, 0x00}, []byte{0x43, 0x00})
+		bus.EXPECT().TransferAndReceiveData([]byte{0x42, 0x00}).Return(nil).SetArg(0, []byte{0x43, 0x00})
 
 		ret, err := cc1101.Strobe(0x42)
 		So(err, ShouldBeNil)
@@ -113,16 +113,16 @@ func TestReceivePacket(t *testing.T) {
 		response = append(response, packet...)
 		gomock.InOrder(
 			// Read RXBYTES for fifo length and overflow.
-			expectTransferAndReceive(bus, []byte{RXBYTES | READ_SINGLE_BYTE, 0x00}, []byte{0x00, 0x03}),
+			bus.EXPECT().TransferAndReceiveData([]byte{RXBYTES | READ_SINGLE_BYTE, 0x00}).Return(nil).SetArg(0, []byte{0x00, 0x03}),
 			// Read first RXFIFO byte for packet length.
-			expectTransferAndReceive(bus, []byte{RXFIFO | READ_SINGLE_BYTE, 0x00}, []byte{0x00, 0x03}),
+			bus.EXPECT().TransferAndReceiveData([]byte{RXFIFO | READ_SINGLE_BYTE, 0x00}).Return(nil).SetArg(0, []byte{0x00, 0x03}),
 			// Read packet data out of RXFIFO.
-			expectTransferAndReceive(bus, []byte{
+			bus.EXPECT().TransferAndReceiveData([]byte{
 				addr,
 				addr + 1*8 | READ_BURST,
 				addr + 2*8 | READ_BURST,
 				addr + 3*8 | READ_BURST,
-			}, response),
+			}).SetArg(0, response),
 			// Read packet status bytes.
 			bus.EXPECT().TransferAndReceiveData([]byte{
 				addr,
@@ -145,10 +145,4 @@ func TestSetSyncWord(t *testing.T) {
 		bus.EXPECT().TransferAndReceiveData([]byte{SYNC0 | WRITE_SINGLE_BYTE, 0x43})
 		So(cc1101.SetSyncWord(0x4243), ShouldBeNil)
 	}))
-}
-
-func expectTransferAndReceive(bus *mocks.MockSPIBus, in []byte, out []byte) *gomock.Call {
-	return bus.EXPECT().TransferAndReceiveData(in).Return(nil).Do(func(in []byte) {
-		copy(in, out)
-	})
 }
