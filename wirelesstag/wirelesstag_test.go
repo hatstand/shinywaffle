@@ -27,7 +27,7 @@ func TestExchangeToken(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(token.AccessToken, ShouldEqual, "foo")
 		So(token.TokenType, ShouldEqual, "Bearer")
-		So(token.Expiry, ShouldEqual, time.Unix(0, 0))
+		So(token.Expiry, ShouldHappenOnOrBefore, time.Unix(0, 0))
 	})
 }
 
