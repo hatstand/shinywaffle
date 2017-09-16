@@ -16,6 +16,10 @@ func main() {
 	flag.Parse()
 	runtime.GOMAXPROCS(12)
 
+	if *clientSecret == "" || *clientId == "" {
+		log.Fatalf("-secret and -client must be set")
+	}
+
 	tags, err := wirelesstag.GetTags(*clientId, *clientSecret)
 	if err != nil {
 		log.Fatalf("Failed to fetch tags: %v", err)
