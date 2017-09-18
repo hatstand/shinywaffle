@@ -16,6 +16,7 @@ import (
 
 var clientSecret = flag.String("secret", "", "OAuth2 client secret for WirelessTag")
 var clientId = flag.String("client", "", "OAuth2 client id for WirelessTag")
+var icao = flag.String("icao", "EGLC", "ICAO code for an appropriately near airport")
 
 type point struct {
 	x time.Time
@@ -89,7 +90,7 @@ func main() {
 
 	log.Printf("Requesting METARs from %v to %v", start, finish)
 
-	METARs, err := metar.FetchMETARs(start, finish)
+	METARs, err := metar.FetchMETARs(start, finish, *icao)
 	if err != nil {
 		log.Fatalf("Failed to fetch METARs: %v", err)
 	}

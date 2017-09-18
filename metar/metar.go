@@ -16,13 +16,12 @@ import (
 
 const (
 	baseURL = "https://www.ogimet.com/display_metars2.php"
-	ICAO    = "EGLC"
 	MaxDays = 30
 )
 
 var (
 	METARMatcher = regexp.MustCompile("^[0-9]{12}.*")
-	METARRegexp  = regexp.MustCompile("^([0-9]{12}) (METAR|TAF|TAF AMD|TAF COR) ([A-Z]{4}) [0-9]{6}Z.*")
+	METARRegexp  = regexp.MustCompile("^([0-9]{12}) (METAR|METAR COR|TAF|TAF AMD|TAF COR) ([A-Z]{4}) [0-9]{6}Z.*")
 	TempRegexp   = regexp.MustCompile("(M?[0-9]{2})/(M?[0-9]{2})")
 )
 
@@ -78,11 +77,11 @@ func ParseMETARs(data string) ([]*METAR, error) {
 	return ret, nil
 }
 
-func reallyFetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
+func reallyFetchMETARs(start time.Time, end time.Time, icao string) ([]*METAR, error) {
 	log.Printf("Fetching METARs from: %v to %v", start, end)
 	v := url.Values{}
 	v.Set("lang", "en")
-	v.Set("lugar", ICAO) // Location
+	v.Set("lugar", icao) // Location
 	v.Set("tipo", "SA")  // Only METARs, no TAFs.
 	v.Set("nil", "NO")
 	v.Set("fmt", "txt")
@@ -138,7 +137,7 @@ func getPage(start time.Time, end time.Time) page {
 	}
 }
 
-func FetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
+func FetchMETARs(start time.Time, end time.Time, icao string) ([]*METAR, error) {
 	var pages []page
 	nextPage := getPage(start, end)
 	for {
@@ -150,7 +149,7 @@ func FetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
 	}
 	var METARs []*METAR
 	for _, page := range pages {
-		m, err := reallyFetchMETARs(page.start, page.end)
+		m, err := reallyFetchMETARs(page.start, page.end, icao)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to fetch METARs: %v", err)
 		}
@@ -160,7 +159,7 @@ func FetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
 }
 
 func parseReportType(t string) Type {
-	if t == "METAR" {
+	if t == "METAR" || t == "METAR COR" {
 		return Routine
 	}
 	return Forecast
