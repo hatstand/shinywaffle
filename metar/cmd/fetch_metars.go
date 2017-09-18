@@ -49,5 +49,6 @@ func main() {
 	}
 
 	w := bufio.NewWriter(os.Stdout)
+	defer w.Flush()
 	err = graph.Render(chart.PNG, w)
 }
