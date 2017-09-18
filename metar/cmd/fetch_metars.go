@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"log"
 	"os"
 	"time"
@@ -10,11 +11,13 @@ import (
 	"github.com/wcharczuk/go-chart"
 )
 
+var icao = flag.String("icao", "EGLC", "ICAO code of an airport")
+
 func main() {
 	finish := time.Now().Round(time.Hour)
 	start := finish.Add(-30 * 24 * time.Hour)
 
-	METARs, err := metar.FetchMETARs(start, finish)
+	METARs, err := metar.FetchMETARs(start, finish, *icao)
 	if err != nil {
 		log.Fatalf("Failed to fetch METARs: %v", err)
 	}
