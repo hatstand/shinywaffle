@@ -24,7 +24,7 @@ var (
 	METARRegexp    = regexp.MustCompile("^([0-9]{12}) (METAR|METAR COR|TAF|TAF AMD|TAF COR) ([A-Z]{4}) [0-9]{6}Z.*")
 	TempRegexp     = regexp.MustCompile("(M?[0-9]{2})/(M?[0-9]{2})")
 	PressureRegexp = regexp.MustCompile("Q([0-9]{4})")
-	WindRegexp     = regexp.MustCompile("([0-9]{3})([0-9]{2})KT")
+	WindRegexp     = regexp.MustCompile("([0-9]{3}|VRB)([0-9]{2})(G[0-9]{2})?KT")
 )
 
 type Type int
@@ -178,6 +178,29 @@ func parseTemperature(t string) int {
 	return i
 }
 
+func parseWind(m string) (int, int, error) {
+	windParsed := WindRegexp.FindStringSubmatch(m)
+	var direction, speed int
+	var err error
+	if windParsed != nil {
+		if windParsed[1] == "VRB" {
+			direction = -1
+		} else {
+			direction, err = strconv.Atoi(windParsed[1])
+			if err != nil {
+				return 0, 0, fmt.Errorf("Failed to parse wind: %v from METAR: %s", m)
+			}
+		}
+		speed, err = strconv.Atoi(windParsed[2])
+		if err != nil {
+			return 0, 0, fmt.Errorf("Failed to parse wind: %v from METAR: %s", m)
+		}
+	} else {
+		return 0, 0, fmt.Errorf("Could not parse wind from METAR: %s", m)
+	}
+	return direction, speed, nil
+}
+
 func parseMETAR(m string) (*METAR, error) {
 	parsed := METARRegexp.FindStringSubmatch(m)
 	if parsed == nil {
@@ -193,9 +216,7 @@ func parseMETAR(m string) (*METAR, error) {
 	pressureParsed := PressureRegexp.FindStringSubmatch(m)
 	pressure, _ := strconv.Atoi(pressureParsed[1])
 
-	windParsed := WindRegexp.FindStringSubmatch(m)
-	heading, _ := strconv.Atoi(windParsed[1])
-	speed, _ := strconv.Atoi(windParsed[2])
+	windDirection, speed, _ := parseWind(m)
 
 	return &METAR{
 		DateTime:         dateTime,
@@ -204,7 +225,7 @@ func parseMETAR(m string) (*METAR, error) {
 		Temperature:      temp,
 		DewPoint:         dew,
 		PressureMillibar: pressure,
-		WindDirection:    heading,
+		WindDirection:    windDirection,
 		WindKnots:        speed,
 	}, nil
 }

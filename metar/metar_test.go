@@ -59,4 +59,22 @@ func TestParseMETARs(t *testing.T) {
 		So(m.WindDirection, ShouldEqual, 130)
 		So(m.WindKnots, ShouldEqual, 19)
 	})
+
+	Convey("Parse gusting wind", t, func() {
+		metars, err := ParseMETARs("201709081620 METAR COR EGSS 081620Z 13019G25KT 9000 SHRA BKN049CB 15/13 Q0996=\n")
+		So(err, ShouldBeNil)
+		So(metars, ShouldNotBeEmpty)
+		m := metars[0]
+		So(m.WindDirection, ShouldEqual, 130)
+		So(m.WindKnots, ShouldEqual, 19)
+	})
+
+	Convey("Parse variable wind", t, func() {
+		metars, err := ParseMETARs("201709081620 METAR COR EGSS 081620Z VRB19KT 9000 SHRA BKN049CB 15/13 Q0996=\n")
+		So(err, ShouldBeNil)
+		So(metars, ShouldNotBeEmpty)
+		m := metars[0]
+		So(m.WindDirection, ShouldEqual, -1)
+		So(m.WindKnots, ShouldEqual, 19)
+	})
 }
