@@ -3,6 +3,7 @@ package metar
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 const (
 	baseURL = "https://www.ogimet.com/display_metars2.php"
 	ICAO    = "EGLC"
+	MaxDays = 30
 )
 
 var (
@@ -76,7 +78,8 @@ func ParseMETARs(data string) ([]*METAR, error) {
 	return ret, nil
 }
 
-func FetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
+func reallyFetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
+	log.Printf("Fetching METARs from: %v to %v", start, end)
 	v := url.Values{}
 	v.Set("lang", "en")
 	v.Set("lugar", ICAO) // Location
@@ -86,18 +89,20 @@ func FetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
 	v.Set("send", "send")
 
 	v.Set("ano", strconv.Itoa(start.Year()))
-	v.Set("mes", fmt.Sprintf("%2d", start.Month()))
-	v.Set("day", fmt.Sprintf("%2d", start.Day()))
-	v.Set("hora", fmt.Sprintf("%2d", start.Hour()))
+	v.Set("mes", fmt.Sprintf("%02d", start.Month()))
+	v.Set("day", fmt.Sprintf("%02d", start.Day()))
+	v.Set("hora", fmt.Sprintf("%02d", start.Hour()))
 
 	v.Set("anof", strconv.Itoa(end.Year()))
-	v.Set("mesf", fmt.Sprintf("%2d", end.Month()))
-	v.Set("dayf", fmt.Sprintf("%2d", end.Day()))
-	v.Set("horaf", fmt.Sprintf("%2d", end.Hour()))
+	v.Set("mesf", fmt.Sprintf("%02d", end.Month()))
+	v.Set("dayf", fmt.Sprintf("%02d", end.Day()))
+	v.Set("horaf", fmt.Sprintf("%02d", end.Hour()))
 	v.Set("minf", "59")
 
 	url, _ := url.Parse(baseURL)
 	url.RawQuery = v.Encode()
+
+	log.Printf("METAR URL: %s", url.String())
 
 	resp, err := http.Get(url.String())
 	if err != nil {
@@ -110,6 +115,46 @@ func FetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
 	METARs, err := ParseMETARs(raw)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to decode METARs: %v", err)
+	}
+	return METARs, nil
+}
+
+type page struct {
+	start time.Time
+	end   time.Time
+}
+
+func getPage(start time.Time, end time.Time) page {
+	if end.Sub(start) <= MaxDays*time.Hour*24 {
+		return page{
+			start: start,
+			end:   end,
+		}
+	} else {
+		return page{
+			start: start,
+			end:   start.Add(MaxDays * time.Hour * 24),
+		}
+	}
+}
+
+func FetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
+	var pages []page
+	nextPage := getPage(start, end)
+	for {
+		pages = append(pages, nextPage)
+		if nextPage.end == end {
+			break
+		}
+		nextPage = getPage(nextPage.end, end)
+	}
+	var METARs []*METAR
+	for _, page := range pages {
+		m, err := reallyFetchMETARs(page.start, page.end)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to fetch METARs: %v", err)
+		}
+		METARs = append(METARs, m...)
 	}
 	return METARs, nil
 }
