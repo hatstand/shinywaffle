@@ -16,6 +16,7 @@ func TestParseTemperatures(t *testing.T) {
 func TestParseReportType(t *testing.T) {
 	Convey("ReportType", t, func() {
 		So(parseReportType("METAR"), ShouldEqual, Routine)
+		So(parseReportType("METAR COR"), ShouldEqual, Routine)
 		So(parseReportType("TAF AMD"), ShouldEqual, Forecast)
 	})
 }
