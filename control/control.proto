@@ -10,11 +10,31 @@ message Sensor {
 
 }
 
+message Schedule {
+  message Time {
+    optional int32 hour = 1;
+    optional int32 minute = 2;
+  }
+
+  message Change {
+    optional Time time = 1;
+
+    enum ChangeType {
+      UNKNOWN = 0;
+      OFF = 1;
+      ON = 2;
+    }
+    optional ChangeType type = 2;
+  }
+  repeated Change change = 1;
+}
+
 message Room {
   optional Sensor sensor = 1;
   optional Radiator radiator = 2;
   optional string name = 3;
   optional int32 target_temperature = 4;
+  optional Schedule schedule = 5;
 }
 
 message Config {

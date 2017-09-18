@@ -18,6 +18,22 @@ room {
   radiator {
     address: "\\x2b\\x76"
   }
+  schedule {
+    change {
+      time {
+        hour: 9
+        minute: 0
+      }
+      type: OFF
+    }
+    change {
+      time {
+        hour: 5
+        minute: 0
+      }
+      type: ON
+    }
+  }
 }
 room {
   name: "Hall"
