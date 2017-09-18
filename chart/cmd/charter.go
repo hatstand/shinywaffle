@@ -52,6 +52,22 @@ func createSeries(data map[string]map[string][]float64, room string) *chart.Time
 	}
 }
 
+func createSeriesFromMETAR(metar []*metar.METAR) *chart.TimeSeries {
+	sort.Slice(metar, func(i, j int) bool {
+		return metar[i].DateTime.Before(metar[j].DateTime)
+	})
+	var x []time.Time
+	var y []float64
+	for _, m := range metar {
+		x = append(x, m.DateTime)
+		y = append(y, float64(m.Temperature))
+	}
+	return &chart.TimeSeries{
+		XValues: x,
+		YValues: y,
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -75,13 +91,6 @@ func main() {
 		log.Fatalf("Failed to fetch METARs: %v", err)
 	}
 
-	var metarX []time.Time
-	var metarY []float64
-	for _, m := range METARs {
-		metarX = append(metarX, m.DateTime)
-		metarY = append(metarY, float64(m.Temperature))
-	}
-
 	graph := chart.Chart{
 		XAxis: chart.XAxis{
 			Style: chart.Style{
@@ -89,10 +98,7 @@ func main() {
 			},
 		},
 		Series: []chart.Series{
-			chart.TimeSeries{
-				XValues: metarX,
-				YValues: metarY,
-			},
+			createSeriesFromMETAR(METARs),
 			createSeries(data, "Hall"),
 			createSeries(data, "Bedroom"),
 			createSeries(data, "Living Room"),
