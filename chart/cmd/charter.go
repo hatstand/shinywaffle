@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -102,6 +103,16 @@ func main() {
 		YAxis: chart.YAxis{
 			Style: chart.Style{
 				Show: true,
+			},
+			ValueFormatter: func(v interface{}) string {
+				if vf, isFloat := v.(float64); isFloat {
+					return fmt.Sprintf("%.1f°C", vf)
+				}
+				return ""
+			},
+			Range: &chart.ContinuousRange{
+				Min: 0.0,
+				Max: 36.0,
 			},
 		},
 		Series: []chart.Series{
