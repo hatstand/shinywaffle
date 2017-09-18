@@ -56,6 +56,14 @@ func ParseMETARs(data string) ([]*METAR, error) {
 			buffer.WriteString(strings.TrimSpace(line))
 		}
 	}
+
+	if strings.TrimSpace(buffer.String()) != "" {
+		parsed, err := parseMETAR(buffer.String())
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse METAR: %v", err)
+		}
+		ret = append(ret, parsed)
+	}
 	return ret, nil
 }
 
