@@ -47,6 +47,7 @@ func createSeries(data map[string]map[string][]float64, room string) *chart.Time
 		tempY = append(tempY, t.y)
 	}
 	return &chart.TimeSeries{
+		Name:    room,
 		XValues: tempX,
 		YValues: tempY,
 	}
@@ -63,6 +64,7 @@ func createSeriesFromMETAR(metar []*metar.METAR) *chart.TimeSeries {
 		y = append(y, float64(m.Temperature))
 	}
 	return &chart.TimeSeries{
+		Name:    metar[0].ICAO,
 		XValues: x,
 		YValues: y,
 	}
@@ -97,6 +99,11 @@ func main() {
 				Show: true,
 			},
 		},
+		YAxis: chart.YAxis{
+			Style: chart.Style{
+				Show: true,
+			},
+		},
 		Series: []chart.Series{
 			createSeriesFromMETAR(METARs),
 			createSeries(data, "Hall"),
@@ -104,6 +111,10 @@ func main() {
 			createSeries(data, "Living Room"),
 			createSeries(data, "Study"),
 		},
+	}
+
+	graph.Elements = []chart.Renderable{
+		chart.Legend(&graph),
 	}
 
 	w := bufio.NewWriter(os.Stdout)
