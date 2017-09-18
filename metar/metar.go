@@ -1,22 +1,12 @@
-package main
+package metar
 
 import (
 	"bytes"
 	"fmt"
-	"log"
-	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/PuerkitoBio/goquery"
-)
-
-const (
-	baseURL = "https://www.ogimet.com/display_metars2.php"
-	ICAO    = "EGLC"
 )
 
 var (
@@ -40,8 +30,8 @@ type METAR struct {
 	DewPoint    int
 }
 
-func parseMETARs(data string) []string {
-	var ret []string
+func ParseMETARs(data string) ([]*METAR, error) {
+	var ret []*METAR
 	lines := strings.Split(data, "\n")
 	var buffer bytes.Buffer
 	for _, line := range lines {
@@ -53,7 +43,11 @@ func parseMETARs(data string) []string {
 		// Start of a METAR
 		if METARMatcher.MatchString(line) {
 			if buffer.Len() != 0 && strings.TrimSpace(buffer.String()) != "" {
-				ret = append(ret, buffer.String())
+				parsed, err := parseMETAR(buffer.String())
+				if err != nil {
+					return nil, fmt.Errorf("Failed to parse METAR: %v", err)
+				}
+				ret = append(ret, parsed)
 			}
 			buffer.Reset()
 			buffer.WriteString(strings.TrimSpace(line))
@@ -62,7 +56,7 @@ func parseMETARs(data string) []string {
 			buffer.WriteString(strings.TrimSpace(line))
 		}
 	}
-	return ret
+	return ret, nil
 }
 
 func parseReportType(t string) Type {
@@ -99,46 +93,4 @@ func parseMETAR(m string) (*METAR, error) {
 		Temperature: temp,
 		DewPoint:    dew,
 	}, nil
-}
-
-func main() {
-	v := url.Values{}
-	v.Set("lang", "en")
-	v.Set("lugar", ICAO)
-	v.Set("tipo", "SA")
-	v.Set("ord", "REV")
-	v.Set("nil", "NO")
-	v.Set("fmt", "txt")
-	v.Set("ano", "2017")
-	v.Set("mes", "08")
-	v.Set("day", "10")
-	v.Set("hora", "00")
-	v.Set("anof", "2017")
-	v.Set("mesf", "08")
-	v.Set("dayf", "31")
-	v.Set("horaf", "23")
-	v.Set("minf", "59")
-	v.Set("send", "send")
-
-	url, _ := url.Parse(baseURL)
-	url.RawQuery = v.Encode()
-
-	fmt.Printf("URL: %v\n", url)
-
-	resp, err := http.Get(url.String())
-	if err != nil {
-		log.Fatalf("Failed to fetch METAR data: %v", err)
-	}
-	defer resp.Body.Close()
-
-	doc, _ := goquery.NewDocumentFromReader(resp.Body)
-	raw := doc.Find("pre").Text()
-	METARs := parseMETARs(raw)
-	for _, m := range METARs {
-		p, err := parseMETAR(m)
-		if err != nil {
-			log.Fatalf("Parsing failed: %v", err)
-		}
-		fmt.Printf("Parsed: %v\n", p)
-	}
 }
