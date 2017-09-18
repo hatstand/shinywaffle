@@ -3,10 +3,19 @@ package metar
 import (
 	"bytes"
 	"fmt"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+)
+
+const (
+	baseURL = "https://www.ogimet.com/display_metars2.php"
+	ICAO    = "EGLC"
 )
 
 var (
@@ -65,6 +74,44 @@ func ParseMETARs(data string) ([]*METAR, error) {
 		ret = append(ret, parsed)
 	}
 	return ret, nil
+}
+
+func FetchMETARs(start time.Time, end time.Time) ([]*METAR, error) {
+	v := url.Values{}
+	v.Set("lang", "en")
+	v.Set("lugar", ICAO) // Location
+	v.Set("tipo", "SA")  // Only METARs, no TAFs.
+	v.Set("nil", "NO")
+	v.Set("fmt", "txt")
+	v.Set("send", "send")
+
+	v.Set("ano", strconv.Itoa(start.Year()))
+	v.Set("mes", fmt.Sprintf("%2d", start.Month()))
+	v.Set("day", fmt.Sprintf("%2d", start.Day()))
+	v.Set("hora", fmt.Sprintf("%2d", start.Hour()))
+
+	v.Set("anof", strconv.Itoa(end.Year()))
+	v.Set("mesf", fmt.Sprintf("%2d", end.Month()))
+	v.Set("dayf", fmt.Sprintf("%2d", end.Day()))
+	v.Set("horaf", fmt.Sprintf("%2d", end.Hour()))
+	v.Set("minf", "59")
+
+	url, _ := url.Parse(baseURL)
+	url.RawQuery = v.Encode()
+
+	resp, err := http.Get(url.String())
+	if err != nil {
+		return nil, fmt.Errorf("Failed to fetch METARs: %v", err)
+	}
+	defer resp.Body.Close()
+
+	doc, _ := goquery.NewDocumentFromReader(resp.Body)
+	raw := doc.Find("pre").Text()
+	METARs, err := ParseMETARs(raw)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to decode METARs: %v", err)
+	}
+	return METARs, nil
 }
 
 func parseReportType(t string) Type {
