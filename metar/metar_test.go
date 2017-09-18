@@ -36,10 +36,12 @@ func TestParseMETARs(t *testing.T) {
 		So(m.DateTime.Hour(), ShouldEqual, 23)
 		So(m.DateTime.Minute(), ShouldEqual, 50)
 		So(m.PressureMillibar, ShouldEqual, 1020)
+		So(m.WindDirection, ShouldEqual, 240)
+		So(m.WindKnots, ShouldEqual, 4)
 	})
 
 	Convey("ParseEGSS", t, func() {
-		metars, err := ParseMETARs("201709081620 METAR COR EGSS 081620Z 24009KT 9000 SHRA BKN049CB 15/13 Q0996=\n")
+		metars, err := ParseMETARs("201709081620 METAR COR EGSS 081620Z 13019KT 9000 SHRA BKN049CB 15/13 Q0996=\n")
 		So(err, ShouldBeNil)
 		So(metars, ShouldNotBeEmpty)
 		m := metars[0]
@@ -53,5 +55,7 @@ func TestParseMETARs(t *testing.T) {
 		So(m.DateTime.Hour(), ShouldEqual, 16)
 		So(m.DateTime.Minute(), ShouldEqual, 20)
 		So(m.PressureMillibar, ShouldEqual, 996)
+		So(m.WindDirection, ShouldEqual, 130)
+		So(m.WindKnots, ShouldEqual, 19)
 	})
 }
