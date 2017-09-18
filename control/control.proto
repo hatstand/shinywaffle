@@ -1,0 +1,22 @@
+syntax = "proto2";
+
+package control;
+
+message Radiator {
+  optional bytes address = 1;
+}
+
+message Sensor {
+
+}
+
+message Room {
+  optional Sensor sensor = 1;
+  optional Radiator radiator = 2;
+  optional string name = 3;
+  optional int32 target_temperature = 4;
+}
+
+message Config {
+  repeated Room room = 1;
+}

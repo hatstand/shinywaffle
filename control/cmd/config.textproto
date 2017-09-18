@@ -1,0 +1,21 @@
+room {
+  name: "Study"
+  target_temperature: 20
+  radiator {
+    address: "\\x2e\\x04"
+  }
+}
+room {
+  name: "Living Room"
+  target_temperature: 20
+  radiator {
+    address: "\\x2b\\xdb"
+  }
+}
+room {
+  name: "Bedroom"
+  target_temperature: 17
+  radiator {
+    address: "\\x2b\\x76"
+  }
+}
