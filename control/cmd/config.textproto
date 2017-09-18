@@ -19,3 +19,10 @@ room {
     address: "\\x2b\\x76"
   }
 }
+room {
+  name: "Hall"
+  target_temperature: 17
+  radiator {
+    address: "\\x2c\\x2c"
+  }
+}
