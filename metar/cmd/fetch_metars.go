@@ -1,13 +1,16 @@
 package main
 
 import (
-	"fmt"
+	"bufio"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/hatstand/shinywaffle/metar"
+	"github.com/wcharczuk/go-chart"
 )
 
 const (
@@ -37,8 +40,6 @@ func main() {
 	url, _ := url.Parse(baseURL)
 	url.RawQuery = v.Encode()
 
-	fmt.Printf("URL: %v\n", url)
-
 	resp, err := http.Get(url.String())
 	if err != nil {
 		log.Fatalf("Failed to fetch METAR data: %v", err)
@@ -51,7 +52,33 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to parse METARs: %v", err)
 	}
+
+	var x []time.Time
+	var y []float64
 	for _, m := range METARs {
-		fmt.Printf("Parsed: %v\n", m)
+		x = append(x, m.DateTime)
+		y = append(y, float64(m.Temperature))
 	}
+
+	graph := chart.Chart{
+		XAxis: chart.XAxis{
+			Style: chart.Style{
+				Show: true,
+			},
+		},
+		YAxis: chart.YAxis{
+			Style: chart.Style{
+				Show: true,
+			},
+		},
+		Series: []chart.Series{
+			chart.TimeSeries{
+				XValues: x,
+				YValues: y,
+			},
+		},
+	}
+
+	w := bufio.NewWriter(os.Stdout)
+	err = graph.Render(chart.PNG, w)
 }
