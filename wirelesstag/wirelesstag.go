@@ -19,6 +19,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	GetHourlyStatsURL = "https://www.mytaglist.com/ethLogs.asmx/GetHourlyStats"
+)
+
 type Tag struct {
 	Name             string  `json:"name"`
 	Temperature      float64 `json:"temperature"`
@@ -26,10 +30,33 @@ type Tag struct {
 	SignaldBm        float64 `json:"signaldBm"`
 	BatteryRemaining float64 `json:"batteryRemaining"`
 	Humidity         float64 `json:"cap"`
+	Type             int     `json:"tagType"`
+	ID               int     `json:"slaveId"`
 }
 
 type TagList struct {
 	Tag []Tag `json:"d"`
+}
+
+type StatsRequest struct {
+	IDs  []int  `json:"ids"`
+	Type string `json:"type"`
+}
+
+type StatsResponse struct {
+	Data StatsResponseData `json:"d"`
+}
+
+type StatsResponseData struct {
+	Stats []Stat   `json:"stats"`
+	IDs   []int    `json:"ids"`
+	Names []string `json:"names"`
+}
+
+type Stat struct {
+	Date   string      `json:"date"`
+	IDs    []int       `json:"ids"`
+	Values [][]float64 `json:"values"`
 }
 
 func exchangeToken(config *oauth2.Config, code string) (*oauth2.Token, error) {
@@ -115,7 +142,6 @@ func tokenFromWeb(ctx context.Context, clientId string, clientSecret string) (to
 			http.NotFound(w, r)
 			return
 		}
-		log.Printf("Request: %v\n", r.URL)
 		retState := r.URL.Query().Get("state")
 		if retState != state {
 			http.Error(w, "State inconsistent", 400)
@@ -171,4 +197,57 @@ func GetTags(clientId string, clientSecret string) ([]Tag, error) {
 		return nil, fmt.Errorf("Failed to decode JSON: %v", err)
 	}
 	return tags.Tag, nil
+}
+
+func GetLogs(clientId string, clientSecret string) (map[string]map[string][]float64, error) {
+	ctx := context.Background()
+	client := getClient(ctx, clientId, clientSecret)
+
+	tags, err := GetTags(clientId, clientSecret)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to fetch tags: %v", err)
+	}
+
+	var allIDs []int
+	for _, t := range tags {
+		allIDs = append(allIDs, t.ID)
+	}
+
+	request := StatsRequest{
+		IDs:  allIDs,
+		Type: "temperature",
+	}
+	j, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to marshal request: %v", err)
+	}
+	resp, err := client.Post(GetHourlyStatsURL, "application/json", bytes.NewBuffer(j))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to fetch stats: %v", err)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	var logs StatsResponse
+	err = json.Unmarshal(data, &logs)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal JSON: %v", err)
+	}
+
+	idMapping := make(map[int]string)
+	for i, id := range logs.Data.IDs {
+		idMapping[id] = logs.Data.Names[i]
+	}
+
+	all := make(map[string]map[string][]float64)
+	for _, s := range logs.Data.Stats {
+		m := make(map[string][]float64)
+		for i, id := range s.IDs {
+			m[idMapping[id]] = s.Values[i]
+		}
+		all[s.Date] = m
+	}
+
+	return all, nil
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"runtime"
 
@@ -20,12 +19,8 @@ func main() {
 		log.Fatalf("-secret and -client must be set")
 	}
 
-	tags, err := wirelesstag.GetTags(*clientId, *clientSecret)
+	_, err := wirelesstag.GetLogs(*clientId, *clientSecret)
 	if err != nil {
 		log.Fatalf("Failed to fetch tags: %v", err)
-	}
-
-	for _, t := range tags {
-		fmt.Println(t)
 	}
 }
