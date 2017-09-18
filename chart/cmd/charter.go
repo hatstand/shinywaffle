@@ -21,6 +21,37 @@ type point struct {
 	y float64
 }
 
+func createSeries(data map[string]map[string][]float64, room string) *chart.TimeSeries {
+	var series []point
+	for date := range data {
+		logs := data[date]
+		d, _ := time.Parse("1/2/2006", date)
+		for i, l := range logs[room] {
+			if l == 0.0 {
+				continue
+			}
+			t := time.Date(d.Year(), d.Month(), d.Day(), i, 0, 0, 0, time.UTC)
+			series = append(series, point{
+				x: t,
+				y: l,
+			})
+		}
+	}
+	sort.Slice(series, func(i, j int) bool {
+		return series[i].x.Before(series[j].x)
+	})
+	var tempX []time.Time
+	var tempY []float64
+	for _, t := range series {
+		tempX = append(tempX, t.x)
+		tempY = append(tempY, t.y)
+	}
+	return &chart.TimeSeries{
+		XValues: tempX,
+		YValues: tempY,
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -51,28 +82,6 @@ func main() {
 		metarY = append(metarY, float64(m.Temperature))
 	}
 
-	var series []point
-	for date := range data {
-		logs := data[date]
-		d, _ := time.Parse("1/2/2006", date)
-		for i, l := range logs["Hall"] {
-			t := time.Date(d.Year(), d.Month(), d.Day(), i, 0, 0, 0, time.UTC)
-			series = append(series, point{
-				x: t,
-				y: l,
-			})
-		}
-	}
-	sort.Slice(series, func(i, j int) bool {
-		return series[i].x.Before(series[j].x)
-	})
-	var tempX []time.Time
-	var tempY []float64
-	for _, t := range series {
-		tempX = append(tempX, t.x)
-		tempY = append(tempY, t.y)
-	}
-
 	graph := chart.Chart{
 		XAxis: chart.XAxis{
 			Style: chart.Style{
@@ -84,13 +93,14 @@ func main() {
 				XValues: metarX,
 				YValues: metarY,
 			},
-			chart.TimeSeries{
-				XValues: tempX,
-				YValues: tempY,
-			},
+			createSeries(data, "Hall"),
+			createSeries(data, "Bedroom"),
+			createSeries(data, "Living Room"),
+			createSeries(data, "Study"),
 		},
 	}
 
 	w := bufio.NewWriter(os.Stdout)
+	defer w.Flush()
 	graph.Render(chart.PNG, w)
 }
