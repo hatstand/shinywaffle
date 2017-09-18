@@ -35,6 +35,7 @@ func TestParseMETARs(t *testing.T) {
 		So(m.DateTime.Day(), ShouldEqual, 31)
 		So(m.DateTime.Hour(), ShouldEqual, 23)
 		So(m.DateTime.Minute(), ShouldEqual, 50)
+		So(m.PressureMillibar, ShouldEqual, 1020)
 	})
 
 	Convey("ParseEGSS", t, func() {
@@ -51,5 +52,6 @@ func TestParseMETARs(t *testing.T) {
 		So(m.DateTime.Day(), ShouldEqual, 8)
 		So(m.DateTime.Hour(), ShouldEqual, 16)
 		So(m.DateTime.Minute(), ShouldEqual, 20)
+		So(m.PressureMillibar, ShouldEqual, 996)
 	})
 }

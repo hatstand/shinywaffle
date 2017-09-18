@@ -20,9 +20,10 @@ const (
 )
 
 var (
-	METARMatcher = regexp.MustCompile("^[0-9]{12}.*")
-	METARRegexp  = regexp.MustCompile("^([0-9]{12}) (METAR|METAR COR|TAF|TAF AMD|TAF COR) ([A-Z]{4}) [0-9]{6}Z.*")
-	TempRegexp   = regexp.MustCompile("(M?[0-9]{2})/(M?[0-9]{2})")
+	METARMatcher   = regexp.MustCompile("^[0-9]{12}.*")
+	METARRegexp    = regexp.MustCompile("^([0-9]{12}) (METAR|METAR COR|TAF|TAF AMD|TAF COR) ([A-Z]{4}) [0-9]{6}Z.*")
+	TempRegexp     = regexp.MustCompile("(M?[0-9]{2})/(M?[0-9]{2})")
+	PressureRegexp = regexp.MustCompile("Q([0-9]{4})")
 )
 
 type Type int
@@ -33,11 +34,12 @@ const (
 )
 
 type METAR struct {
-	DateTime    time.Time
-	ICAO        string
-	ReportType  Type
-	Temperature int
-	DewPoint    int
+	DateTime         time.Time
+	ICAO             string
+	ReportType       Type
+	Temperature      int
+	DewPoint         int
+	PressureMillibar int
 }
 
 func ParseMETARs(data string) ([]*METAR, error) {
@@ -185,11 +187,15 @@ func parseMETAR(m string) (*METAR, error) {
 	temp := parseTemperature(tempParsed[1])
 	dew := parseTemperature(tempParsed[2])
 
+	pressureParsed := PressureRegexp.FindStringSubmatch(m)
+	pressure, _ := strconv.Atoi(pressureParsed[1])
+
 	return &METAR{
-		DateTime:    dateTime,
-		ICAO:        parsed[3],
-		ReportType:  parseReportType(parsed[2]),
-		Temperature: temp,
-		DewPoint:    dew,
+		DateTime:         dateTime,
+		ICAO:             parsed[3],
+		ReportType:       parseReportType(parsed[2]),
+		Temperature:      temp,
+		DewPoint:         dew,
+		PressureMillibar: pressure,
 	}, nil
 }
