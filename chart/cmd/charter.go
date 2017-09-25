@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"log"
-	"os"
+	"net/http"
 	"sort"
 	"time"
 
@@ -75,61 +74,66 @@ func createSeriesFromMETAR(metar []*metar.METAR) *chart.TimeSeries {
 func main() {
 	flag.Parse()
 
-	data, err := wirelesstag.GetLogs(*clientId, *clientSecret)
-	var dates []time.Time
-	for k := range data {
-		t, _ := time.Parse("1/2/2006", k)
-		dates = append(dates, t)
-	}
-	sort.Slice(dates, func(i, j int) bool {
-		return dates[i].Before(dates[j])
+	http.HandleFunc("/foo", func(w http.ResponseWriter, r *http.Request) {
+		data, err := wirelesstag.GetLogs(*clientId, *clientSecret)
+		var dates []time.Time
+		for k := range data {
+			t, _ := time.Parse("1/2/2006", k)
+			dates = append(dates, t)
+		}
+		sort.Slice(dates, func(i, j int) bool {
+			return dates[i].Before(dates[j])
+		})
+
+		start := dates[0]
+		finish := dates[len(dates)-1]
+
+		log.Printf("Requesting METARs from %v to %v", start, finish)
+
+		METARs, err := metar.FetchMETARs(start, finish, *icao)
+		if err != nil {
+			log.Fatalf("Failed to fetch METARs: %v", err)
+		}
+
+		graph := chart.Chart{
+			Width:  1920,
+			Height: 1080,
+			DPI:    184.0,
+			XAxis: chart.XAxis{
+				Style: chart.Style{
+					Show: true,
+				},
+			},
+			YAxis: chart.YAxis{
+				Style: chart.Style{
+					Show: true,
+				},
+				ValueFormatter: func(v interface{}) string {
+					if vf, isFloat := v.(float64); isFloat {
+						return fmt.Sprintf("%.1f°C", vf)
+					}
+					return ""
+				},
+				Range: &chart.ContinuousRange{
+					Min: 0.0,
+					Max: 36.0,
+				},
+			},
+			Series: []chart.Series{
+				createSeriesFromMETAR(METARs),
+				createSeries(data, "Hall"),
+				createSeries(data, "Bedroom"),
+				createSeries(data, "Living Room"),
+				createSeries(data, "Study"),
+			},
+		}
+
+		graph.Elements = []chart.Renderable{
+			chart.Legend(&graph),
+		}
+
+		graph.Render(chart.PNG, w)
 	})
-
-	start := dates[0]
-	finish := dates[len(dates)-1]
-
-	log.Printf("Requesting METARs from %v to %v", start, finish)
-
-	METARs, err := metar.FetchMETARs(start, finish, *icao)
-	if err != nil {
-		log.Fatalf("Failed to fetch METARs: %v", err)
-	}
-
-	graph := chart.Chart{
-		XAxis: chart.XAxis{
-			Style: chart.Style{
-				Show: true,
-			},
-		},
-		YAxis: chart.YAxis{
-			Style: chart.Style{
-				Show: true,
-			},
-			ValueFormatter: func(v interface{}) string {
-				if vf, isFloat := v.(float64); isFloat {
-					return fmt.Sprintf("%.1f°C", vf)
-				}
-				return ""
-			},
-			Range: &chart.ContinuousRange{
-				Min: 0.0,
-				Max: 36.0,
-			},
-		},
-		Series: []chart.Series{
-			createSeriesFromMETAR(METARs),
-			createSeries(data, "Hall"),
-			createSeries(data, "Bedroom"),
-			createSeries(data, "Living Room"),
-			createSeries(data, "Study"),
-		},
-	}
-
-	graph.Elements = []chart.Renderable{
-		chart.Legend(&graph),
-	}
-
-	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
-	graph.Render(chart.PNG, w)
+	log.Println("Listening...")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
