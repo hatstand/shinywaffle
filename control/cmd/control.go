@@ -15,6 +15,7 @@ import (
 var client = flag.String("client", "", "OAuth client id")
 var secret = flag.String("secret", "", "OAuth client secret")
 var config = flag.String("config", "config.textproto", "Path to config proto")
+var dryRun = flag.Bool("n", false, "Disables radiator commands")
 
 const (
 	kP = 1
@@ -92,8 +93,16 @@ func (*StubController) TurnOff(addr []byte) {
 	log.Printf("Turning off radiator: %v\n", addr)
 }
 
+func createController() RadiatorController {
+	if *dryRun {
+		return &StubController{}
+	} else {
+		return control.NewController()
+	}
+}
+
 func main() {
 	flag.Parse()
 
-	ControlRadiators(&StubController{})
+	ControlRadiators(createController())
 }

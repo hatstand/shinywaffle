@@ -1,6 +1,6 @@
 room {
   name: "Study"
-  target_temperature: 25
+  target_temperature: 20
   radiator {
     address: "\x2e\x04"
   }
