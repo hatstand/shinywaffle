@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/felixge/pidctrl"
@@ -111,12 +113,36 @@ func createController() RadiatorController {
 func main() {
 	flag.Parse()
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, world!")
 	})
 
 	go ControlRadiators(ctx, createController())
-	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	srv := &http.Server{Addr: ":8080"}
+	go func() {
+		log.Println("Listening...")
+		if err := srv.ListenAndServe(); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Shutting down...")
+			timeout, httpCancel := context.WithTimeout(ctx, 5*time.Second)
+			defer httpCancel()
+			srv.Shutdown(timeout)
+			return
+		case <-ch:
+			cancel()
+		}
+	}
 }
