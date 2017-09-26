@@ -98,8 +98,6 @@ func TestSendPacket(t *testing.T) {
 			bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}),
 			// Flush the TX buffer.
 			bus.EXPECT().TransferAndReceiveData([]byte{SFTX, 0x00}),
-			// Return to RX mode.
-			bus.EXPECT().TransferAndReceiveData([]byte{SRX, 0x00}),
 		)
 		cc1101.Send(packet)
 	}))
