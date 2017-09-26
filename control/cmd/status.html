@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Heating Control Status</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <style type="text/css">
+      html {
+        font-family: 'Roboto', sans-serif;
+      }
+
+      .title {
+        font-size: 20px;
+        margin: 20px;
+      }
+
+      .status {
+        margin: 20px;
+        border: 1px solid #ccc;
+        padding: 20px;
+      }
+
+      .room {
+        margin: 10px auto 10px auto;
+        padding: 10px;
+        max-width: 300px;
+        border: 1px solid orange;
+      }
+
+      .name {
+        font-weight: bold;
+        font-size: 18px;
+        padding: 4px 0;
+      }
+
+      .value {
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="title">
+      Heating Control Status
+    </div>
+
+    <div class="status">
+      {{ range $key, $value := .Ctrl.Config }}
+      <div class="room">
+        <div class="name">{{ $key }}</div>
+        <div class="field">Set to: <span class="value">{{ $value.Pid.Get }}</span></div>
+        <div class="field">Current Temperature: <span class="value">{{ printf "%.1f" $value.LastTemp }}</span></div>
+      </div>
+      {{ end }}
+    </div>
+  </body>
+</html>

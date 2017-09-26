@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -28,17 +29,26 @@ const (
 	kD = .0
 )
 
-type RadiatorController interface {
+var (
+	statusHtml = template.Must(template.ParseFiles("status.html"))
+)
+
+type radiatorController interface {
 	TurnOn([]byte)
 	TurnOff([]byte)
 }
 
 type Room struct {
-	pid    *pidctrl.PIDController
-	config *control.Room
+	Pid      *pidctrl.PIDController
+	config   *control.Room
+	LastTemp float64
 }
 
-func ControlRadiators(ctx context.Context, controller RadiatorController) {
+type Controller struct {
+	Config map[string]*Room
+}
+
+func NewController(path string) *Controller {
 	configText, err := ioutil.ReadFile(*config)
 	if err != nil {
 		log.Fatalf("Failed to read config file: %s %v", *config, err)
@@ -56,11 +66,16 @@ func ControlRadiators(ctx context.Context, controller RadiatorController) {
 		ctrl.SetOutputLimits(0, 100)
 		ctrl.Set(float64(*room.TargetTemperature))
 		m[*room.Name] = &Room{
-			pid:    ctrl,
+			Pid:    ctrl,
 			config: room,
 		}
 	}
+	return &Controller{
+		Config: m,
+	}
+}
 
+func (c *Controller) ControlRadiators(ctx context.Context, controller radiatorController) {
 	ch := time.Tick(15 * time.Second)
 	lastUpdated := time.Now()
 	for {
@@ -71,9 +86,10 @@ func ControlRadiators(ctx context.Context, controller RadiatorController) {
 				log.Printf("Failed to fetch tag data: %v", err)
 			}
 			for _, t := range tags {
-				room := m[t.Name]
+				room := c.Config[t.Name]
+				room.LastTemp = t.Temperature
 				if room != nil {
-					value := room.pid.UpdateDuration(t.Temperature, time.Since(lastUpdated))
+					value := room.Pid.UpdateDuration(t.Temperature, time.Since(lastUpdated))
 					log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", t.Name, t.Temperature, *room.config.TargetTemperature, value)
 					if value < 50.0 {
 						controller.TurnOff(room.config.Radiator.Address)
@@ -91,20 +107,20 @@ func ControlRadiators(ctx context.Context, controller RadiatorController) {
 	}
 }
 
-type StubController struct {
+type stubRadiatorController struct {
 }
 
-func (*StubController) TurnOn(addr []byte) {
+func (*stubRadiatorController) TurnOn(addr []byte) {
 	log.Printf("Turning on radiator: %v\n", addr)
 }
 
-func (*StubController) TurnOff(addr []byte) {
+func (*stubRadiatorController) TurnOff(addr []byte) {
 	log.Printf("Turning off radiator: %v\n", addr)
 }
 
-func createController() RadiatorController {
+func createRadiatorController() radiatorController {
 	if *dryRun {
-		return &StubController{}
+		return &stubRadiatorController{}
 	} else {
 		return control.NewController()
 	}
@@ -116,11 +132,25 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	controller := NewController(*config)
+	go controller.ControlRadiators(ctx, createRadiatorController())
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, world!")
 	})
-
-	go ControlRadiators(ctx, createController())
+	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		data := struct {
+			Title string
+			Ctrl  *Controller
+		}{
+			"foobar",
+			controller,
+		}
+		err := statusHtml.Execute(w, data)
+		if err != nil {
+			panic(err)
+		}
+	})
 
 	srv := &http.Server{Addr: ":8080"}
 	go func() {
