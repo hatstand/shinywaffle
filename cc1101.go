@@ -170,22 +170,24 @@ func NewCC1101(packetCh chan<- []byte) CC1101 {
 	cc1101.SelfTest()
 	cc1101.Init()
 
-	cc1101.SetIdle()
-	cc1101.SetRx()
+	if packetCh != nil {
+		cc1101.SetIdle()
+		cc1101.SetRx()
 
-	log.Print("Waiting for packets...")
-	gdo0.Watch(embd.EdgeRising, func(pin embd.DigitalPin) {
-		log.Println("Packet arrived")
-		defer cc1101.SetRx()
-		defer cc1101.SetIdle()
+		log.Print("Waiting for packets...")
+		gdo0.Watch(embd.EdgeRising, func(pin embd.DigitalPin) {
+			log.Println("Packet arrived")
+			defer cc1101.SetRx()
+			defer cc1101.SetIdle()
 
-		recv, err := cc1101.Receive()
-		if err != nil {
-			log.Println("Failed to receive: ", err)
-		} else {
-			packetCh <- recv
-		}
-	})
+			recv, err := cc1101.Receive()
+			if err != nil {
+				log.Println("Failed to receive: ", err)
+			} else {
+				packetCh <- recv
+			}
+		})
+	}
 
 	return cc1101
 }
@@ -403,8 +405,6 @@ func (c *CC1101) Receive() ([]byte, error) {
 func (c *CC1101) Send(packet []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-
-	defer c.SetRx()
 
 	log.Printf("Sending packet: %v\n", packet)
 
