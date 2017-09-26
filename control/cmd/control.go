@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/felixge/pidctrl"
@@ -33,7 +36,7 @@ type Room struct {
 	config *control.Room
 }
 
-func ControlRadiators(controller RadiatorController) {
+func ControlRadiators(ctx context.Context, controller RadiatorController) {
 	configText, err := ioutil.ReadFile(*config)
 	if err != nil {
 		log.Fatalf("Failed to read config file: %s %v", *config, err)
@@ -58,26 +61,30 @@ func ControlRadiators(controller RadiatorController) {
 
 	ch := time.Tick(15 * time.Second)
 	lastUpdated := time.Now()
-	for _ = range ch {
-		tags, err := wirelesstag.GetTags(*client, *secret)
-		if err != nil {
-			log.Printf("Failed to fetch tag data: %v", err)
-		}
-		for _, t := range tags {
-			room := m[t.Name]
-			if room != nil {
-				value := room.pid.UpdateDuration(t.Temperature, time.Since(lastUpdated))
-				log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", t.Name, t.Temperature, *room.config.TargetTemperature, value)
-				if value < 50.0 {
-					controller.TurnOff(room.config.Radiator.Address)
-				} else {
-					controller.TurnOn(room.config.Radiator.Address)
-				}
-			} else {
-				log.Printf("No config for room: %s", t.Name)
+	for {
+		select {
+		case <-ch:
+			tags, err := wirelesstag.GetTags(*client, *secret)
+			if err != nil {
+				log.Printf("Failed to fetch tag data: %v", err)
 			}
+			for _, t := range tags {
+				room := m[t.Name]
+				if room != nil {
+					value := room.pid.UpdateDuration(t.Temperature, time.Since(lastUpdated))
+					log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", t.Name, t.Temperature, *room.config.TargetTemperature, value)
+					if value < 50.0 {
+						controller.TurnOff(room.config.Radiator.Address)
+					} else {
+						controller.TurnOn(room.config.Radiator.Address)
+					}
+				} else {
+					log.Printf("No config for room: %s", t.Name)
+				}
+			}
+		case <-ctx.Done():
+			return
 		}
-
 		lastUpdated = time.Now()
 	}
 }
@@ -104,5 +111,12 @@ func createController() RadiatorController {
 func main() {
 	flag.Parse()
 
-	ControlRadiators(createController())
+	ctx := context.Background()
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello, world!")
+	})
+
+	go ControlRadiators(ctx, createController())
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
