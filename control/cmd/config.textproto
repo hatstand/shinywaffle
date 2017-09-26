@@ -1,22 +1,22 @@
 room {
   name: "Study"
-  target_temperature: 20
+  target_temperature: 25
   radiator {
-    address: "\\x2e\\x04"
+    address: "\x2e\x04"
   }
 }
 room {
   name: "Living Room"
   target_temperature: 20
   radiator {
-    address: "\\x2b\\xdb"
+    address: "\x2b\xdb"
   }
 }
 room {
   name: "Bedroom"
   target_temperature: 17
   radiator {
-    address: "\\x2b\\x76"
+    address: "\x2b\x76"
   }
   schedule {
     change {
@@ -39,6 +39,6 @@ room {
   name: "Hall"
   target_temperature: 17
   radiator {
-    address: "\\x2c\\x2c"
+    address: "\x2c\x2c"
   }
 }

@@ -22,9 +22,17 @@ const (
 	kD = .0
 )
 
-func main() {
-	flag.Parse()
+type RadiatorController interface {
+	TurnOn([]byte)
+	TurnOff([]byte)
+}
 
+type Room struct {
+	pid    *pidctrl.PIDController
+	config *control.Room
+}
+
+func ControlRadiators(controller RadiatorController) {
 	configText, err := ioutil.ReadFile(*config)
 	if err != nil {
 		log.Fatalf("Failed to read config file: %s %v", *config, err)
@@ -35,13 +43,16 @@ func main() {
 		log.Fatalf("Failed to parse config file: %v", err)
 	}
 
-	m := make(map[string]*pidctrl.PIDController)
+	m := make(map[string]*Room)
 	for _, room := range config.Room {
 		log.Printf("Configuring controller for: %s", *room.Name)
 		ctrl := pidctrl.NewPIDController(kP, kI, kD)
 		ctrl.SetOutputLimits(0, 100)
 		ctrl.Set(float64(*room.TargetTemperature))
-		m[*room.Name] = ctrl
+		m[*room.Name] = &Room{
+			pid:    ctrl,
+			config: room,
+		}
 	}
 
 	ch := time.Tick(15 * time.Second)
@@ -52,9 +63,15 @@ func main() {
 			log.Printf("Failed to fetch tag data: %v", err)
 		}
 		for _, t := range tags {
-			ctrl := m[t.Name]
-			if ctrl != nil {
-				ctrl.UpdateDuration(t.Temperature, time.Since(lastUpdated))
+			room := m[t.Name]
+			if room != nil {
+				value := room.pid.UpdateDuration(t.Temperature, time.Since(lastUpdated))
+				log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", t.Name, t.Temperature, *room.config.TargetTemperature, value)
+				if value < 50.0 {
+					controller.TurnOff(room.config.Radiator.Address)
+				} else {
+					controller.TurnOn(room.config.Radiator.Address)
+				}
 			} else {
 				log.Printf("No config for room: %s", t.Name)
 			}
@@ -62,4 +79,21 @@ func main() {
 
 		lastUpdated = time.Now()
 	}
+}
+
+type StubController struct {
+}
+
+func (*StubController) TurnOn(addr []byte) {
+	log.Printf("Turning on radiator: %v\n", addr)
+}
+
+func (*StubController) TurnOff(addr []byte) {
+	log.Printf("Turning off radiator: %v\n", addr)
+}
+
+func main() {
+	flag.Parse()
+
+	ControlRadiators(&StubController{})
 }
