@@ -44,7 +44,7 @@
 
     <div class="status">
       {{ range $key, $value := .Ctrl.Config }}
-      <div class="room">
+      <div class="room" style="background-color: hsl({{ convertColour $value.LastTemp }}, 70%, 50%)">
         <div class="name">{{ $key }}</div>
         <div class="field">Set to: <span class="value">{{ $value.Pid.Get }}</span></div>
         <div class="field">Current Temperature: <span class="value">{{ printf "%.1f" $value.LastTemp }}</span></div>

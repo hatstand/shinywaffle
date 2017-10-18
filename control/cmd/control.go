@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,7 +31,9 @@ const (
 )
 
 var (
-	statusHtml = template.Must(template.ParseFiles("status.html"))
+	statusHtml = template.Must(template.New("status.html").Funcs(template.FuncMap{
+		"convertColour": convertColour,
+	}).ParseFiles("status.html"))
 )
 
 type radiatorController interface {
@@ -46,6 +49,12 @@ type Room struct {
 
 type Controller struct {
 	Config map[string]*Room
+}
+
+// convertColour converts a temperature in degrees Celsius into a hue value in the HSV space.
+func convertColour(temp float64) int {
+	clamped := math.Min(30, math.Max(0, temp)) * 4
+	return int(240 + clamped)
 }
 
 func NewController(path string) *Controller {
