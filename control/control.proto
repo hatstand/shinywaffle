@@ -16,17 +16,19 @@ message Schedule {
     optional int32 minute = 2;
   }
 
-  message Change {
-    optional Time time = 1;
+  message Interval {
+    optional Time begin = 1;
+    optional Time end = 2;
 
-    enum ChangeType {
+    enum State {
       UNKNOWN = 0;
       OFF = 1;
       ON = 2;
     }
-    optional ChangeType type = 2;
+    optional State type = 3 [default=OFF];
   }
-  repeated Change change = 1;
+
+  repeated Interval interval = 1;
 }
 
 message Room {

@@ -84,6 +84,16 @@ func NewController(path string) *Controller {
 	}
 }
 
+func (c *Controller) checkSchedule(room *Room) bool {
+	t := time.Now()
+	for _, i := range room.config.Schedule.Interval {
+		if *i.Begin.Hour >= int32(t.Hour()) && *i.End.Hour < int32(t.Hour()) {
+			return *i.Type == control.Schedule_Interval_ON
+		}
+	}
+	return false
+}
+
 func (c *Controller) ControlRadiators(ctx context.Context, controller radiatorController) {
 	ch := time.Tick(15 * time.Second)
 	lastUpdated := time.Now()

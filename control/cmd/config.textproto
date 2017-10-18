@@ -19,16 +19,13 @@ room {
     address: "\x2b\x76"
   }
   schedule {
-    change {
-      time {
+    interval {
+      begin {
         hour: 9
         minute: 0
       }
-      type: OFF
-    }
-    change {
-      time {
-        hour: 5
+      end {
+        hour: 11
         minute: 0
       }
       type: ON
