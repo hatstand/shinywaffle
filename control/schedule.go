@@ -1,6 +1,7 @@
 package control
 
 import (
+	"time"
 	"unsafe"
 
 	"github.com/golang-collections/go-datastructures/augmentedtree"
@@ -61,10 +62,10 @@ type IntervalTree struct {
 	tree augmentedtree.Tree
 }
 
-func (t *IntervalTree) Query(hour int64, minute int64) Schedule_Interval_State {
+func (t *IntervalTree) Query(hour int, minute int) Schedule_Interval_State {
 	is := t.tree.Query(&queryInterval{
-		start: hour*60 + minute,
-		end:   hour*60 + minute,
+		start: int64(hour*60 + minute),
+		end:   int64(hour*60 + minute),
 	})
 	if len(is) == 0 {
 		return Schedule_Interval_UNKNOWN
@@ -72,10 +73,16 @@ func (t *IntervalTree) Query(hour int64, minute int64) Schedule_Interval_State {
 	return is[0].(*scheduleInterval).state
 }
 
+func (t *IntervalTree) QueryTime(ti time.Time) Schedule_Interval_State {
+	return t.Query(ti.Hour(), ti.Minute())
+}
+
 func NewSchedule(proto *Schedule) *IntervalTree {
 	tree := augmentedtree.New(1)
-	for _, i := range proto.Interval {
-		tree.Add(newInterval(i))
+	if proto != nil {
+		for _, i := range proto.Interval {
+			tree.Add(newInterval(i))
+		}
 	}
 	return &IntervalTree{
 		tree: tree,

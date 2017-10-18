@@ -44,6 +44,7 @@ type radiatorController interface {
 type Room struct {
 	Pid      *pidctrl.PIDController
 	config   *control.Room
+	schedule *control.IntervalTree
 	LastTemp float64
 }
 
@@ -75,8 +76,9 @@ func NewController(path string) *Controller {
 		ctrl.SetOutputLimits(0, 100)
 		ctrl.Set(float64(*room.TargetTemperature))
 		m[*room.Name] = &Room{
-			Pid:    ctrl,
-			config: room,
+			Pid:      ctrl,
+			config:   room,
+			schedule: control.NewSchedule(room.Schedule),
 		}
 	}
 	return &Controller{
@@ -84,14 +86,8 @@ func NewController(path string) *Controller {
 	}
 }
 
-func (c *Controller) checkSchedule(room *Room) bool {
-	t := time.Now()
-	for _, i := range room.config.Schedule.Interval {
-		if *i.Begin.Hour >= int32(t.Hour()) && *i.End.Hour < int32(t.Hour()) {
-			return *i.Type == control.Schedule_Interval_ON
-		}
-	}
-	return false
+func (c *Controller) checkSchedule(room *Room) control.Schedule_Interval_State {
+	return room.schedule.QueryTime(time.Now())
 }
 
 func (c *Controller) ControlRadiators(ctx context.Context, controller radiatorController) {
@@ -108,12 +104,18 @@ func (c *Controller) ControlRadiators(ctx context.Context, controller radiatorCo
 				room := c.Config[t.Name]
 				room.LastTemp = t.Temperature
 				if room != nil {
-					value := room.Pid.UpdateDuration(t.Temperature, time.Since(lastUpdated))
-					log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", t.Name, t.Temperature, *room.config.TargetTemperature, value)
-					if value < 50.0 {
+					scheduled := c.checkSchedule(room)
+					switch scheduled {
+					case control.Schedule_Interval_OFF, control.Schedule_Interval_UNKNOWN:
 						controller.TurnOff(room.config.Radiator.Address)
-					} else {
-						controller.TurnOn(room.config.Radiator.Address)
+					case control.Schedule_Interval_ON:
+						value := room.Pid.UpdateDuration(t.Temperature, time.Since(lastUpdated))
+						log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", t.Name, t.Temperature, *room.config.TargetTemperature, value)
+						if value < 50.0 {
+							controller.TurnOff(room.config.Radiator.Address)
+						} else {
+							controller.TurnOn(room.config.Radiator.Address)
+						}
 					}
 				} else {
 					log.Printf("No config for room: %s", t.Name)
