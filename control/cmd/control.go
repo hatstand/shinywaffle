@@ -49,7 +49,8 @@ type Room struct {
 }
 
 type Controller struct {
-	Config map[string]*Room
+	Config     map[string]*Room
+	controller radiatorController
 }
 
 // convertColour converts a temperature in degrees Celsius into a hue value in the HSV space.
@@ -58,7 +59,7 @@ func convertColour(temp float64) int {
 	return int(240 + clamped)
 }
 
-func NewController(path string) *Controller {
+func NewController(path string, controller radiatorController) *Controller {
 	configText, err := ioutil.ReadFile(*config)
 	if err != nil {
 		log.Fatalf("Failed to read config file: %s %v", *config, err)
@@ -82,7 +83,8 @@ func NewController(path string) *Controller {
 		}
 	}
 	return &Controller{
-		Config: m,
+		Config:     m,
+		controller: controller,
 	}
 }
 
@@ -90,9 +92,26 @@ func (c *Controller) checkSchedule(room *Room) control.Schedule_Interval_State {
 	return room.schedule.QueryTime(time.Now())
 }
 
-func (c *Controller) ControlRadiators(ctx context.Context, controller radiatorController) {
+func (c *Controller) GetNextState(room *Room) control.Schedule_Interval_State {
+	scheduled := c.checkSchedule(room)
+	switch scheduled {
+	case control.Schedule_Interval_OFF, control.Schedule_Interval_UNKNOWN:
+		return control.Schedule_Interval_OFF
+	case control.Schedule_Interval_ON:
+		lastUpdated := time.Now()
+		value := room.Pid.UpdateDuration(room.LastTemp, time.Since(lastUpdated))
+		log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", room.config.GetName(), room.LastTemp, room.config.GetTargetTemperature(), value)
+		if value < 50.0 {
+			return control.Schedule_Interval_OFF
+		} else {
+			return control.Schedule_Interval_ON
+		}
+	}
+	return control.Schedule_Interval_UNKNOWN
+}
+
+func (c *Controller) ControlRadiators(ctx context.Context) {
 	ch := time.Tick(15 * time.Second)
-	lastUpdated := time.Now()
 	for {
 		select {
 		case <-ch:
@@ -104,18 +123,12 @@ func (c *Controller) ControlRadiators(ctx context.Context, controller radiatorCo
 				room := c.Config[t.Name]
 				room.LastTemp = t.Temperature
 				if room != nil {
-					scheduled := c.checkSchedule(room)
-					switch scheduled {
+					nextState := c.GetNextState(room)
+					switch nextState {
 					case control.Schedule_Interval_OFF, control.Schedule_Interval_UNKNOWN:
-						controller.TurnOff(room.config.Radiator.Address)
+						c.controller.TurnOff(room.config.Radiator.Address)
 					case control.Schedule_Interval_ON:
-						value := room.Pid.UpdateDuration(t.Temperature, time.Since(lastUpdated))
-						log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", t.Name, t.Temperature, *room.config.TargetTemperature, value)
-						if value < 50.0 {
-							controller.TurnOff(room.config.Radiator.Address)
-						} else {
-							controller.TurnOn(room.config.Radiator.Address)
-						}
+						c.controller.TurnOn(room.config.Radiator.Address)
 					}
 				} else {
 					log.Printf("No config for room: %s", t.Name)
@@ -124,7 +137,6 @@ func (c *Controller) ControlRadiators(ctx context.Context, controller radiatorCo
 		case <-ctx.Done():
 			return
 		}
-		lastUpdated = time.Now()
 	}
 }
 
@@ -153,8 +165,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	controller := NewController(*config)
-	go controller.ControlRadiators(ctx, createRadiatorController())
+	controller := NewController(*config, createRadiatorController())
+	go controller.ControlRadiators(ctx)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, world!")
