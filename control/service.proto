@@ -48,10 +48,15 @@ message SetZoneScheduleReply {
 service HeatingControlService {
   rpc GetZones (GetZonesRequest) returns (GetZonesReply) {
     option (google.api.http) = {
-      get: "/v1/zones/get"
+      get: "/v1/zones"
     };
   }
-  rpc GetZoneStatus (GetZoneStatusRequest) returns (GetZoneStatusReply) {}
+
+  rpc GetZoneStatus (GetZoneStatusRequest) returns (GetZoneStatusReply) {
+    option (google.api.http) = {
+      get: "/v1/zone/{name}"
+    };
+  }
 
   rpc SetZoneSchedule (SetZoneScheduleRequest) returns (SetZoneScheduleReply) {}
 }
