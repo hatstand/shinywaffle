@@ -1,8 +1,9 @@
 syntax = "proto3";
 
-import "control.proto";
-
 package control;
+
+import "control.proto";
+import "google/api/annotations.proto";
 
 message Zone {
   string name = 1;
@@ -45,7 +46,11 @@ message SetZoneScheduleReply {
 }
 
 service HeatingControlService {
-  rpc GetZones (GetZonesRequest) returns (GetZonesReply) {}
+  rpc GetZones (GetZonesRequest) returns (GetZonesReply) {
+    option (google.api.http) = {
+      get: "/v1/zones/get"
+    };
+  }
   rpc GetZoneStatus (GetZoneStatusRequest) returns (GetZoneStatusReply) {}
 
   rpc SetZoneSchedule (SetZoneScheduleRequest) returns (SetZoneScheduleReply) {}

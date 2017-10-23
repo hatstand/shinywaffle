@@ -8,16 +8,20 @@ import (
 	"io/ioutil"
 	"log"
 	"math"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/felixge/pidctrl"
 	"github.com/golang/protobuf/proto"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/hatstand/shinywaffle/control"
 	"github.com/hatstand/shinywaffle/wirelesstag"
+	"google.golang.org/grpc"
 )
 
 var client = flag.String("client", "", "OAuth client id")
@@ -218,6 +222,26 @@ func createRadiatorController() radiatorController {
 	}
 }
 
+type ServeMux struct {
+	api http.Handler
+	ui  http.Handler
+}
+
+func NewServeMux(api http.Handler, ui http.Handler) *ServeMux {
+	return &ServeMux{
+		api: api,
+		ui:  ui,
+	}
+}
+
+func (s *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/v1") {
+		s.api.ServeHTTP(w, r)
+	} else {
+		s.ui.ServeHTTP(w, r)
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -227,10 +251,27 @@ func main() {
 	controller := NewController(*config, createRadiatorController())
 	go controller.ControlRadiators(ctx)
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	s := grpc.NewServer()
+	control.RegisterHeatingControlServiceServer(s, controller)
+
+	l, err := net.Listen("tcp", ":8081")
+	if err != nil {
+		log.Fatalf("Failed to listen on GRPC port: %v", err)
+	}
+	go s.Serve(l)
+
+	apiMux := runtime.NewServeMux()
+	opts := []grpc.DialOption{grpc.WithInsecure()}
+	err = control.RegisterHeatingControlServiceHandlerFromEndpoint(ctx, apiMux, ":8081", opts)
+	if err != nil {
+		log.Fatalf("Error starting GRPC gateway: %v", err)
+	}
+
+	uiMux := http.NewServeMux()
+	uiMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, world!")
 	})
-	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+	uiMux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		var ret []*control.GetZoneStatusReply
 		zones, err := controller.GetZones(ctx, &control.GetZonesRequest{})
 		if err == nil {
@@ -260,7 +301,10 @@ func main() {
 		}
 	})
 
-	srv := &http.Server{Addr: ":8080"}
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: NewServeMux(apiMux, uiMux),
+	}
 	go func() {
 		log.Println("Listening...")
 		if err := srv.ListenAndServe(); err != nil {
