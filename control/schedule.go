@@ -8,9 +8,9 @@ import (
 )
 
 type ScheduleInterval struct {
-	Start int64
-	End   int64
-	State Schedule_Interval_State
+	Start       int64
+	End         int64
+	Temperature int32
 }
 
 func (s *ScheduleInterval) LowAtDimension(uint64) int64 {
@@ -52,9 +52,9 @@ func (q *queryInterval) ID() uint64 {
 
 func newInterval(proto *Schedule_Interval) augmentedtree.Interval {
 	return &ScheduleInterval{
-		Start: int64(proto.GetBegin().GetHour()*60 + proto.GetBegin().GetMinute()),
-		End:   int64(proto.GetEnd().GetHour()*60 + proto.GetEnd().GetMinute()),
-		State: proto.GetType(),
+		Start:       int64(proto.GetBegin().GetHour()*60 + proto.GetBegin().GetMinute()),
+		End:         int64(proto.GetEnd().GetHour()*60 + proto.GetEnd().GetMinute()),
+		Temperature: proto.GetTargetTemperature(),
 	}
 }
 
@@ -62,18 +62,18 @@ type IntervalTree struct {
 	tree augmentedtree.Tree
 }
 
-func (t *IntervalTree) Query(hour int, minute int) Schedule_Interval_State {
+func (t *IntervalTree) Query(hour int, minute int) int32 {
 	is := t.tree.Query(&queryInterval{
 		start: int64(hour*60 + minute),
 		end:   int64(hour*60 + minute),
 	})
 	if len(is) == 0 {
-		return Schedule_Interval_UNKNOWN
+		return -1
 	}
-	return is[0].(*ScheduleInterval).State
+	return is[0].(*ScheduleInterval).Temperature
 }
 
-func (t *IntervalTree) QueryTime(ti time.Time) Schedule_Interval_State {
+func (t *IntervalTree) QueryTime(ti time.Time) int32 {
 	return t.Query(ti.Hour(), ti.Minute())
 }
 

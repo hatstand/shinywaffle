@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+import "control.proto";
+
+package control;
+
+message Zone {
+  string name = 1;
+  repeated Radiator radiator = 2;
+  Schedule schedule = 3;
+}
+
+enum HeatingState {
+  UNKNOWN = 0;
+  ON = 1;
+  OFF = 2;
+}
+
+message GetZonesRequest {
+
+}
+
+message GetZonesReply {
+  repeated Zone zone = 1;
+}
+
+message GetZoneStatusRequest {
+  string name = 1;
+}
+
+message GetZoneStatusReply {
+  string name = 1;
+  float target_temperature = 2;
+  float current_temperature = 3;
+  HeatingState state = 4;
+  Schedule schedule = 5;
+}
+
+message SetZoneScheduleRequest {
+  Schedule schedule = 1;
+}
+
+message SetZoneScheduleReply {
+
+}
+
+service HeatingControlService {
+  rpc GetZones (GetZonesRequest) returns (GetZonesReply) {}
+  rpc GetZoneStatus (GetZoneStatusRequest) returns (GetZoneStatusReply) {}
+
+  rpc SetZoneSchedule (SetZoneScheduleRequest) returns (SetZoneScheduleReply) {}
+}
+
+message Config {
+  repeated Zone zone = 1;
+}

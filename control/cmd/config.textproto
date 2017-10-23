@@ -1,6 +1,5 @@
-room {
+zone {
   name: "Study"
-  target_temperature: 20
   radiator {
     address: "\x2e\x04"
   }
@@ -14,20 +13,31 @@ room {
         hour: 23
         minute: 59
       }
-      type: ON
+      target_temperature: 20
     }
   }
 }
-room {
+zone {
   name: "Living Room"
-  target_temperature: 20
   radiator {
     address: "\x2b\xdb"
   }
+  schedule {
+    interval {
+      begin {
+        hour: 18
+        minute: 0
+      }
+      end {
+        hour: 23
+        minute: 59
+      }
+      target_temperature: 20
+    }
+  }
 }
-room {
+zone {
   name: "Bedroom"
-  target_temperature: 17
   radiator {
     address: "\x2b\x76"
   }
@@ -41,14 +51,26 @@ room {
         hour: 11
         minute: 0
       }
-      type: ON
+      target_temperature: 18
     }
   }
 }
-room {
+zone {
   name: "Hall"
-  target_temperature: 17
   radiator {
     address: "\x2c\x2c"
+  }
+  schedule {
+    interval {
+      begin {
+        hour: 0
+        minute: 0
+      }
+      end {
+        hour: 23
+        minute: 59
+      }
+      target_temperature: 15
+    }
   }
 }

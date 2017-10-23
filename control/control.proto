@@ -1,44 +1,22 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package control;
 
 message Radiator {
-  optional bytes address = 1;
-}
-
-message Sensor {
-
+  bytes address = 1;
 }
 
 message Schedule {
   message Time {
-    optional int32 hour = 1;
-    optional int32 minute = 2;
+    int32 hour = 1;
+    int32 minute = 2;
   }
 
   message Interval {
-    optional Time begin = 1;
-    optional Time end = 2;
-
-    enum State {
-      UNKNOWN = 0;
-      OFF = 1;
-      ON = 2;
-    }
-    optional State type = 3 [default=OFF];
+    Time begin = 1;
+    Time end = 2;
+    int32 target_temperature = 3;
   }
 
   repeated Interval interval = 1;
-}
-
-message Room {
-  optional Sensor sensor = 1;
-  optional Radiator radiator = 2;
-  optional string name = 3;
-  optional int32 target_temperature = 4;
-  optional Schedule schedule = 5;
-}
-
-message Config {
-  repeated Room room = 1;
 }

@@ -44,14 +44,15 @@ type radiatorController interface {
 
 type Room struct {
 	Pid      *pidctrl.PIDController
-	config   *control.Room
+	config   *control.Zone
 	schedule *control.IntervalTree
 	LastTemp float64
 }
 
 type Controller struct {
-	Config     map[string]*Room
-	controller radiatorController
+	Config      map[string]*Room
+	controller  radiatorController
+	lastUpdated time.Time
 }
 
 // convertColour converts a temperature in degrees Celsius into a hue value in the HSV space.
@@ -89,15 +90,14 @@ func NewController(path string, controller radiatorController) *Controller {
 	}
 
 	m := make(map[string]*Room)
-	for _, room := range config.Room {
-		log.Printf("Configuring controller for: %s", *room.Name)
+	for _, room := range config.Zone {
+		log.Printf("Configuring controller for: %s", room.GetName())
 		ctrl := pidctrl.NewPIDController(kP, kI, kD)
 		ctrl.SetOutputLimits(0, 100)
-		ctrl.Set(float64(*room.TargetTemperature))
-		m[*room.Name] = &Room{
+		m[room.GetName()] = &Room{
 			Pid:      ctrl,
 			config:   room,
-			schedule: control.NewSchedule(room.Schedule),
+			schedule: control.NewSchedule(room.GetSchedule()),
 		}
 	}
 	return &Controller{
@@ -106,44 +106,43 @@ func NewController(path string, controller radiatorController) *Controller {
 	}
 }
 
-func (c *Controller) checkSchedule(room *Room) control.Schedule_Interval_State {
+func (c *Controller) checkSchedule(room *Room) int32 {
 	return room.schedule.QueryTime(time.Now())
 }
 
-func (c *Controller) GetNextState(room *Room) control.Schedule_Interval_State {
-	scheduled := c.checkSchedule(room)
-	switch scheduled {
-	case control.Schedule_Interval_OFF, control.Schedule_Interval_UNKNOWN:
-		log.Printf("Turning off in %s due to schedule\n", room.config.GetName())
-		return control.Schedule_Interval_OFF
-	case control.Schedule_Interval_ON:
-		lastUpdated := time.Now()
-		value := room.Pid.UpdateDuration(room.LastTemp, time.Since(lastUpdated))
-		log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", room.config.GetName(), room.LastTemp, room.config.GetTargetTemperature(), value)
-		if value == 0.0 {
-			return control.Schedule_Interval_OFF
-		} else {
-			return control.Schedule_Interval_ON
-		}
+func (c *Controller) GetNextState(room *Room) control.HeatingState {
+	scheduledTemp := c.checkSchedule(room)
+	room.Pid.Set(float64(scheduledTemp))
+	value := room.Pid.UpdateDuration(room.LastTemp, time.Since(c.lastUpdated))
+	log.Printf("Room: %s Temperature: %.1f Target: %d PID: %f\n", room.config.GetName(), room.LastTemp, scheduledTemp, value)
+	if value > 0.0 {
+		return control.HeatingState_ON
+	} else {
+		return control.HeatingState_OFF
 	}
-	return control.Schedule_Interval_UNKNOWN
 }
 
 func (c *Controller) tick() {
 	tags, err := wirelesstag.GetTags(*client, *secret)
 	if err != nil {
 		log.Printf("Failed to fetch tag data: %v", err)
+		return
 	}
+	c.lastUpdated = time.Now()
 	for _, t := range tags {
 		room := c.Config[t.Name]
 		room.LastTemp = t.Temperature
 		if room != nil {
 			nextState := c.GetNextState(room)
 			switch nextState {
-			case control.Schedule_Interval_OFF, control.Schedule_Interval_UNKNOWN:
-				c.controller.TurnOff(room.config.Radiator.Address)
-			case control.Schedule_Interval_ON:
-				c.controller.TurnOn(room.config.Radiator.Address)
+			case control.HeatingState_OFF, control.HeatingState_UNKNOWN:
+				for _, r := range room.config.Radiator {
+					c.controller.TurnOff(r.GetAddress())
+				}
+			case control.HeatingState_ON:
+				for _, r := range room.config.Radiator {
+					c.controller.TurnOn(r.GetAddress())
+				}
 			}
 		} else {
 			log.Printf("No config for room: %s", t.Name)
@@ -181,6 +180,36 @@ func createRadiatorController() radiatorController {
 	} else {
 		return control.NewController()
 	}
+}
+
+type service struct {
+	config *control.Config
+}
+
+func NewService(c *control.Config) *service {
+	return &service{config: c}
+}
+
+func (s *service) GetZones(ctx context.Context, req *control.GetZonesRequest) (*control.GetZonesReply, error) {
+	return &control.GetZonesReply{
+		Zone: s.config.Zone,
+	}, nil
+}
+
+func (s *service) GetZoneStatus(ctx context.Context, req *control.GetZoneStatusRequest) (*control.GetZoneStatusReply, error) {
+	for _, r := range s.config.Zone {
+		if r.GetName() == req.GetName() {
+			return &control.GetZoneStatusReply{
+				Name:     r.GetName(),
+				Schedule: r.GetSchedule(),
+			}, nil
+		}
+	}
+	return &control.GetZoneStatusReply{}, nil
+}
+
+func (s *service) SetZoneSchedule(ctx context.Context, req *control.SetZoneScheduleRequest) (*control.SetZoneScheduleReply, error) {
+	return &control.SetZoneScheduleReply{}, nil
 }
 
 func main() {

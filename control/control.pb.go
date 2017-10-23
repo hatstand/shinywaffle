@@ -6,12 +6,18 @@ Package control is a generated protocol buffer package.
 
 It is generated from these files:
 	control.proto
+	service.proto
 
 It has these top-level messages:
 	Radiator
-	Sensor
 	Schedule
-	Room
+	Zone
+	GetZonesRequest
+	GetZonesReply
+	GetZoneStatusRequest
+	GetZoneStatusReply
+	SetZoneScheduleRequest
+	SetZoneScheduleReply
 	Config
 */
 package control
@@ -31,48 +37,8 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type Schedule_Interval_State int32
-
-const (
-	Schedule_Interval_UNKNOWN Schedule_Interval_State = 0
-	Schedule_Interval_OFF     Schedule_Interval_State = 1
-	Schedule_Interval_ON      Schedule_Interval_State = 2
-)
-
-var Schedule_Interval_State_name = map[int32]string{
-	0: "UNKNOWN",
-	1: "OFF",
-	2: "ON",
-}
-var Schedule_Interval_State_value = map[string]int32{
-	"UNKNOWN": 0,
-	"OFF":     1,
-	"ON":      2,
-}
-
-func (x Schedule_Interval_State) Enum() *Schedule_Interval_State {
-	p := new(Schedule_Interval_State)
-	*p = x
-	return p
-}
-func (x Schedule_Interval_State) String() string {
-	return proto.EnumName(Schedule_Interval_State_name, int32(x))
-}
-func (x *Schedule_Interval_State) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Schedule_Interval_State_value, data, "Schedule_Interval_State")
-	if err != nil {
-		return err
-	}
-	*x = Schedule_Interval_State(value)
-	return nil
-}
-func (Schedule_Interval_State) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor0, []int{2, 1, 0}
-}
-
 type Radiator struct {
-	Address          []byte `protobuf:"bytes,1,opt,name=address" json:"address,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
+	Address []byte `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 }
 
 func (m *Radiator) Reset()                    { *m = Radiator{} }
@@ -87,24 +53,14 @@ func (m *Radiator) GetAddress() []byte {
 	return nil
 }
 
-type Sensor struct {
-	XXX_unrecognized []byte `json:"-"`
-}
-
-func (m *Sensor) Reset()                    { *m = Sensor{} }
-func (m *Sensor) String() string            { return proto.CompactTextString(m) }
-func (*Sensor) ProtoMessage()               {}
-func (*Sensor) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
-
 type Schedule struct {
-	Interval         []*Schedule_Interval `protobuf:"bytes,1,rep,name=interval" json:"interval,omitempty"`
-	XXX_unrecognized []byte               `json:"-"`
+	Interval []*Schedule_Interval `protobuf:"bytes,1,rep,name=interval" json:"interval,omitempty"`
 }
 
 func (m *Schedule) Reset()                    { *m = Schedule{} }
 func (m *Schedule) String() string            { return proto.CompactTextString(m) }
 func (*Schedule) ProtoMessage()               {}
-func (*Schedule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (*Schedule) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
 func (m *Schedule) GetInterval() []*Schedule_Interval {
 	if m != nil {
@@ -114,43 +70,39 @@ func (m *Schedule) GetInterval() []*Schedule_Interval {
 }
 
 type Schedule_Time struct {
-	Hour             *int32 `protobuf:"varint,1,opt,name=hour" json:"hour,omitempty"`
-	Minute           *int32 `protobuf:"varint,2,opt,name=minute" json:"minute,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
+	Hour   int32 `protobuf:"varint,1,opt,name=hour" json:"hour,omitempty"`
+	Minute int32 `protobuf:"varint,2,opt,name=minute" json:"minute,omitempty"`
 }
 
 func (m *Schedule_Time) Reset()                    { *m = Schedule_Time{} }
 func (m *Schedule_Time) String() string            { return proto.CompactTextString(m) }
 func (*Schedule_Time) ProtoMessage()               {}
-func (*Schedule_Time) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2, 0} }
+func (*Schedule_Time) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1, 0} }
 
 func (m *Schedule_Time) GetHour() int32 {
-	if m != nil && m.Hour != nil {
-		return *m.Hour
+	if m != nil {
+		return m.Hour
 	}
 	return 0
 }
 
 func (m *Schedule_Time) GetMinute() int32 {
-	if m != nil && m.Minute != nil {
-		return *m.Minute
+	if m != nil {
+		return m.Minute
 	}
 	return 0
 }
 
 type Schedule_Interval struct {
-	Begin            *Schedule_Time           `protobuf:"bytes,1,opt,name=begin" json:"begin,omitempty"`
-	End              *Schedule_Time           `protobuf:"bytes,2,opt,name=end" json:"end,omitempty"`
-	Type             *Schedule_Interval_State `protobuf:"varint,3,opt,name=type,enum=control.Schedule_Interval_State,def=1" json:"type,omitempty"`
-	XXX_unrecognized []byte                   `json:"-"`
+	Begin             *Schedule_Time `protobuf:"bytes,1,opt,name=begin" json:"begin,omitempty"`
+	End               *Schedule_Time `protobuf:"bytes,2,opt,name=end" json:"end,omitempty"`
+	TargetTemperature int32          `protobuf:"varint,3,opt,name=target_temperature,json=targetTemperature" json:"target_temperature,omitempty"`
 }
 
 func (m *Schedule_Interval) Reset()                    { *m = Schedule_Interval{} }
 func (m *Schedule_Interval) String() string            { return proto.CompactTextString(m) }
 func (*Schedule_Interval) ProtoMessage()               {}
-func (*Schedule_Interval) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2, 1} }
-
-const Default_Schedule_Interval_Type Schedule_Interval_State = Schedule_Interval_OFF
+func (*Schedule_Interval) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1, 1} }
 
 func (m *Schedule_Interval) GetBegin() *Schedule_Time {
 	if m != nil {
@@ -166,114 +118,37 @@ func (m *Schedule_Interval) GetEnd() *Schedule_Time {
 	return nil
 }
 
-func (m *Schedule_Interval) GetType() Schedule_Interval_State {
-	if m != nil && m.Type != nil {
-		return *m.Type
-	}
-	return Default_Schedule_Interval_Type
-}
-
-type Room struct {
-	Sensor            *Sensor   `protobuf:"bytes,1,opt,name=sensor" json:"sensor,omitempty"`
-	Radiator          *Radiator `protobuf:"bytes,2,opt,name=radiator" json:"radiator,omitempty"`
-	Name              *string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	TargetTemperature *int32    `protobuf:"varint,4,opt,name=target_temperature" json:"target_temperature,omitempty"`
-	Schedule          *Schedule `protobuf:"bytes,5,opt,name=schedule" json:"schedule,omitempty"`
-	XXX_unrecognized  []byte    `json:"-"`
-}
-
-func (m *Room) Reset()                    { *m = Room{} }
-func (m *Room) String() string            { return proto.CompactTextString(m) }
-func (*Room) ProtoMessage()               {}
-func (*Room) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
-
-func (m *Room) GetSensor() *Sensor {
+func (m *Schedule_Interval) GetTargetTemperature() int32 {
 	if m != nil {
-		return m.Sensor
-	}
-	return nil
-}
-
-func (m *Room) GetRadiator() *Radiator {
-	if m != nil {
-		return m.Radiator
-	}
-	return nil
-}
-
-func (m *Room) GetName() string {
-	if m != nil && m.Name != nil {
-		return *m.Name
-	}
-	return ""
-}
-
-func (m *Room) GetTargetTemperature() int32 {
-	if m != nil && m.TargetTemperature != nil {
-		return *m.TargetTemperature
+		return m.TargetTemperature
 	}
 	return 0
 }
 
-func (m *Room) GetSchedule() *Schedule {
-	if m != nil {
-		return m.Schedule
-	}
-	return nil
-}
-
-type Config struct {
-	Room             []*Room `protobuf:"bytes,1,rep,name=room" json:"room,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
-}
-
-func (m *Config) Reset()                    { *m = Config{} }
-func (m *Config) String() string            { return proto.CompactTextString(m) }
-func (*Config) ProtoMessage()               {}
-func (*Config) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
-
-func (m *Config) GetRoom() []*Room {
-	if m != nil {
-		return m.Room
-	}
-	return nil
-}
-
 func init() {
 	proto.RegisterType((*Radiator)(nil), "control.Radiator")
-	proto.RegisterType((*Sensor)(nil), "control.Sensor")
 	proto.RegisterType((*Schedule)(nil), "control.Schedule")
 	proto.RegisterType((*Schedule_Time)(nil), "control.Schedule.Time")
 	proto.RegisterType((*Schedule_Interval)(nil), "control.Schedule.Interval")
-	proto.RegisterType((*Room)(nil), "control.Room")
-	proto.RegisterType((*Config)(nil), "control.Config")
-	proto.RegisterEnum("control.Schedule_Interval_State", Schedule_Interval_State_name, Schedule_Interval_State_value)
 }
 
 func init() { proto.RegisterFile("control.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 343 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x91, 0xcd, 0x6a, 0xe3, 0x30,
-	0x14, 0x85, 0xc7, 0xff, 0x9e, 0x9b, 0xdf, 0xd1, 0x62, 0x30, 0xce, 0x62, 0x8c, 0x33, 0x81, 0x2c,
-	0x8a, 0x17, 0xe9, 0xae, 0xdb, 0x42, 0xa0, 0x14, 0x1c, 0x48, 0x5a, 0xba, 0x2c, 0x6a, 0x7c, 0x9b,
-	0x18, 0x62, 0xdd, 0x20, 0xcb, 0x85, 0x3e, 0x47, 0x97, 0x7d, 0x8b, 0x3e, 0x61, 0x89, 0x2a, 0x27,
-	0xd0, 0x92, 0xe5, 0x91, 0x8e, 0xbe, 0x7b, 0x74, 0x2e, 0xf4, 0xd6, 0x24, 0x94, 0xa4, 0x5d, 0xb6,
-	0x97, 0xa4, 0x88, 0x05, 0x46, 0xa6, 0x23, 0x08, 0x97, 0xbc, 0x28, 0xb9, 0x22, 0xc9, 0x06, 0x10,
-	0xf0, 0xa2, 0x90, 0x58, 0xd7, 0x91, 0x95, 0x58, 0xd3, 0x6e, 0x1a, 0x82, 0xbf, 0x42, 0x51, 0x93,
-	0x4c, 0xdf, 0x6c, 0x08, 0x57, 0xeb, 0x2d, 0x16, 0xcd, 0x0e, 0xd9, 0x05, 0x84, 0xa5, 0x50, 0x28,
-	0x5f, 0xf8, 0x2e, 0xb2, 0x12, 0x67, 0xda, 0x99, 0xc5, 0x59, 0x8b, 0x6f, 0x4d, 0xd9, 0x8d, 0x71,
-	0xc4, 0xff, 0xc1, 0xbd, 0x2b, 0x2b, 0x64, 0x5d, 0x70, 0xb7, 0xd4, 0x48, 0x8d, 0xf6, 0x58, 0x1f,
-	0xfc, 0xaa, 0x14, 0x8d, 0xc2, 0xc8, 0x3e, 0xe8, 0xf8, 0xc3, 0x82, 0xb0, 0x7d, 0xc2, 0x26, 0xe0,
-	0x3d, 0xe1, 0xa6, 0x14, 0xda, 0xdb, 0x99, 0xfd, 0xfd, 0x49, 0xd7, 0xc4, 0x31, 0x38, 0x28, 0x0a,
-	0x0d, 0x38, 0x6f, 0xba, 0x04, 0x57, 0xbd, 0xee, 0x31, 0x72, 0x12, 0x6b, 0xda, 0x9f, 0x25, 0xe7,
-	0x83, 0x66, 0x2b, 0xc5, 0x15, 0x5e, 0x39, 0x8b, 0xf9, 0x3c, 0x9d, 0x80, 0xa7, 0x15, 0xeb, 0x40,
-	0x70, 0x9f, 0xdf, 0xe6, 0x8b, 0x87, 0x7c, 0xf8, 0x8b, 0x05, 0x70, 0xb8, 0x1c, 0x5a, 0xcc, 0x07,
-	0x7b, 0x91, 0x0f, 0xed, 0xf4, 0xdd, 0x02, 0x77, 0x49, 0x54, 0xb1, 0x7f, 0xe0, 0xd7, 0xba, 0x28,
-	0x93, 0x78, 0x70, 0x1a, 0xa3, 0x8f, 0xd9, 0x18, 0x42, 0x69, 0x6a, 0x36, 0x79, 0xff, 0x1c, 0x2d,
-	0xc7, 0xfe, 0xbb, 0xe0, 0x0a, 0x5e, 0x7d, 0x45, 0xfd, 0xcd, 0x62, 0x60, 0x8a, 0xcb, 0x0d, 0xaa,
-	0x47, 0x85, 0xd5, 0x1e, 0x25, 0x57, 0x8d, 0xc4, 0xc8, 0xd5, 0xed, 0x8d, 0x21, 0xac, 0x4d, 0xfe,
-	0xc8, 0xfb, 0x86, 0x6b, 0x3f, 0x96, 0x4e, 0xc0, 0xbf, 0x26, 0xf1, 0x5c, 0x6e, 0xd8, 0x08, 0x5c,
-	0x49, 0x54, 0x99, 0x65, 0xf5, 0x4e, 0x93, 0x89, 0xaa, 0xcf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x5d,
-	0x90, 0x23, 0xc2, 0x1a, 0x02, 0x00, 0x00,
+	// 230 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x90, 0xbf, 0x4e, 0xc3, 0x30,
+	0x10, 0xc6, 0x95, 0xa6, 0x7f, 0xa2, 0x2b, 0x0c, 0xdc, 0x50, 0x59, 0x99, 0xaa, 0x8a, 0x21, 0x03,
+	0x64, 0x08, 0x12, 0xef, 0xc0, 0x6a, 0xba, 0x23, 0xb7, 0x3e, 0xb5, 0x96, 0x12, 0xbb, 0xba, 0x9e,
+	0x79, 0x08, 0x36, 0xde, 0x18, 0xd5, 0x8d, 0x61, 0x40, 0xdd, 0xfc, 0xf9, 0x7e, 0xfe, 0x7d, 0xd6,
+	0xc1, 0xfd, 0x3e, 0x78, 0xe1, 0xd0, 0xb7, 0x27, 0x0e, 0x12, 0x70, 0x31, 0xc6, 0xcd, 0x23, 0x54,
+	0xda, 0x58, 0x67, 0x24, 0x30, 0x2a, 0x58, 0x18, 0x6b, 0x99, 0xce, 0x67, 0x55, 0xac, 0x8b, 0xe6,
+	0x4e, 0xe7, 0xb8, 0xf9, 0x9a, 0x40, 0xf5, 0xbe, 0x3f, 0x92, 0x8d, 0x3d, 0xe1, 0x2b, 0x54, 0xce,
+	0x0b, 0xf1, 0xa7, 0xe9, 0x55, 0xb1, 0x2e, 0x9b, 0x65, 0x57, 0xb7, 0xd9, 0x9e, 0xa1, 0xf6, 0x6d,
+	0x24, 0xf4, 0x2f, 0x5b, 0x77, 0x30, 0xdd, 0xba, 0x81, 0x10, 0x61, 0x7a, 0x0c, 0x91, 0x53, 0xc7,
+	0x4c, 0xa7, 0x33, 0xae, 0x60, 0x3e, 0x38, 0x1f, 0x85, 0xd4, 0x24, 0xdd, 0x8e, 0xa9, 0xfe, 0x2e,
+	0xa0, 0xca, 0x2a, 0x7c, 0x82, 0xd9, 0x8e, 0x0e, 0xce, 0xa7, 0x97, 0xcb, 0x6e, 0xf5, 0xbf, 0xf5,
+	0xe2, 0xd7, 0x57, 0x08, 0x1b, 0x28, 0xc9, 0xdb, 0xe4, 0xbb, 0xcd, 0x5e, 0x10, 0x7c, 0x06, 0x14,
+	0xc3, 0x07, 0x92, 0x0f, 0xa1, 0xe1, 0x44, 0x6c, 0x24, 0x32, 0xa9, 0x32, 0x7d, 0xe4, 0xe1, 0x3a,
+	0xd9, 0xfe, 0x0d, 0x76, 0xf3, 0xb4, 0xc2, 0x97, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x28, 0xe6,
+	0xfd, 0xcd, 0x53, 0x01, 0x00, 0x00,
 }
