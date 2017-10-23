@@ -152,7 +152,7 @@ func (c *Controller) tick() {
 }
 
 func (c *Controller) ControlRadiators(ctx context.Context) {
-	ch := time.Tick(5 * time.Minute)
+	ch := time.Tick(1 * time.Minute)
 	c.tick()
 	for {
 		select {
