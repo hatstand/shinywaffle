@@ -4,6 +4,19 @@ room {
   radiator {
     address: "\x2e\x04"
   }
+  schedule {
+    interval {
+      begin {
+        hour: 15
+        minute: 0
+      }
+      end {
+        hour: 23
+        minute: 59
+      }
+      type: ON
+    }
+  }
 }
 room {
   name: "Living Room"

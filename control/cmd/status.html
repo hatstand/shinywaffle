@@ -25,6 +25,8 @@
         max-width: 300px;
         border: 1px solid orange;
         position: relative;
+        background-color: #F44336;
+        color: #fff;
       }
 
       .name {
@@ -42,17 +44,68 @@
         border-radius: 50%;
         position: absolute;
         right: 10px;
-        top: calc(50% - 10px);
+        top: 10px;
         width: 20px;
         height: 20px;
       }
 
       .light.on {
-        background-color: green;
+        background-color: #D32F2F;
       }
 
       .light.off {
-        background-color: red;
+        background-color: #03A9F4;
+      }
+
+      .contents {
+        position: relative;
+        background-color: #BDBDBD;
+        width: 100%;
+        height: 20px;
+      }
+
+      .schedule {
+        width: 100%;
+      }
+
+      .interval {
+        background-color: #212121;
+        position: absolute;
+        z-index: 1;
+        height: 20px;
+      }
+
+      .header {
+        height: 10px;
+        margin: 12px 0 4px 0;
+        position: relative;
+        width: 100%;
+      }
+
+      .time {
+        display: inline-block;
+        font-size: 10px;
+        position: absolute;
+      }
+
+      .time:first-child {
+        left: 0;
+      }
+
+      .time:nth-child(2) {
+        left: 25%;
+      }
+
+      .time:nth-child(3) {
+        left: 50%;
+      }
+
+      .time:nth-child(4) {
+        left: 75%;
+      }
+
+      .time:last-child {
+        left: 98%;
       }
     </style>
   </head>
@@ -61,10 +114,12 @@
       Heating Control Status
     </div>
 
+    <div>{{ .Now }}</div>
+
     <div class="status">
       {{ with $Ctrl := .Ctrl }}
       {{ range $key, $value := .Config }}
-      <div class="room" style="background-color: hsl({{ convertColour $value.LastTemp }}, 70%, 50%)">
+      <div class="room">
         {{ with $state := $Ctrl.GetNextState $value }}
           {{ if eq $state 1 }}
             <div class="light off"></div>
@@ -77,6 +132,20 @@
         <div class="name">{{ $key }}</div>
         <div class="field">Set to: <span class="value">{{ $value.Pid.Get }}</span></div>
         <div class="field">Current Temperature: <span class="value">{{ printf "%.1f" $value.LastTemp }}</span></div>
+        <div class="schedule">
+          <div class="header">
+            <span class="time">0</span>
+            <span class="time">6</span>
+            <span class="time">12</span>
+            <span class="time">18</span>
+            <span class="time">24</span>
+          </div>
+          <div class="contents">
+            {{ range $i := getSchedule $value }}
+              <div class="interval" style="left: {{ $i.Offset }}%; width: {{ $i.Width }}%"></div>
+            {{ end }}
+          </div>
+        </div>
       </div>
       {{ end }}
       {{ end }}

@@ -33,6 +33,7 @@ const (
 var (
 	statusHtml = template.Must(template.New("status.html").Funcs(template.FuncMap{
 		"convertColour": convertColour,
+		"getSchedule":   getSchedule,
 	}).ParseFiles("status.html"))
 )
 
@@ -57,6 +58,23 @@ type Controller struct {
 func convertColour(temp float64) int {
 	clamped := math.Min(30, math.Max(0, temp)) * 4
 	return int(240 + clamped)
+}
+
+type Interval struct {
+	Width  int // Percentage from 0-100 of 24 hours
+	Offset int // Percentage from 0-100 of 24 hours
+}
+
+func getSchedule(room *Room) []Interval {
+	intervals := room.schedule.FetchDay()
+	var ret []Interval
+	for _, i := range intervals {
+		ret = append(ret, Interval{
+			Width:  int(float32(i.End-i.Start) / 24 / 60 * 100),
+			Offset: int(float32(i.Start) / 24 / 60 * 100),
+		})
+	}
+	return ret
 }
 
 func NewController(path string, controller radiatorController) *Controller {
@@ -96,12 +114,13 @@ func (c *Controller) GetNextState(room *Room) control.Schedule_Interval_State {
 	scheduled := c.checkSchedule(room)
 	switch scheduled {
 	case control.Schedule_Interval_OFF, control.Schedule_Interval_UNKNOWN:
+		log.Printf("Turning off in %s due to schedule\n", room.config.GetName())
 		return control.Schedule_Interval_OFF
 	case control.Schedule_Interval_ON:
 		lastUpdated := time.Now()
 		value := room.Pid.UpdateDuration(room.LastTemp, time.Since(lastUpdated))
 		log.Printf("Room: %s Temperature: %.1f Target: %d PID: %.1f\n", room.config.GetName(), room.LastTemp, room.config.GetTargetTemperature(), value)
-		if value < 50.0 {
+		if value == 0.0 {
 			return control.Schedule_Interval_OFF
 		} else {
 			return control.Schedule_Interval_ON
@@ -110,30 +129,35 @@ func (c *Controller) GetNextState(room *Room) control.Schedule_Interval_State {
 	return control.Schedule_Interval_UNKNOWN
 }
 
+func (c *Controller) tick() {
+	tags, err := wirelesstag.GetTags(*client, *secret)
+	if err != nil {
+		log.Printf("Failed to fetch tag data: %v", err)
+	}
+	for _, t := range tags {
+		room := c.Config[t.Name]
+		room.LastTemp = t.Temperature
+		if room != nil {
+			nextState := c.GetNextState(room)
+			switch nextState {
+			case control.Schedule_Interval_OFF, control.Schedule_Interval_UNKNOWN:
+				c.controller.TurnOff(room.config.Radiator.Address)
+			case control.Schedule_Interval_ON:
+				c.controller.TurnOn(room.config.Radiator.Address)
+			}
+		} else {
+			log.Printf("No config for room: %s", t.Name)
+		}
+	}
+}
+
 func (c *Controller) ControlRadiators(ctx context.Context) {
-	ch := time.Tick(15 * time.Second)
+	ch := time.Tick(5 * time.Minute)
+	c.tick()
 	for {
 		select {
 		case <-ch:
-			tags, err := wirelesstag.GetTags(*client, *secret)
-			if err != nil {
-				log.Printf("Failed to fetch tag data: %v", err)
-			}
-			for _, t := range tags {
-				room := c.Config[t.Name]
-				room.LastTemp = t.Temperature
-				if room != nil {
-					nextState := c.GetNextState(room)
-					switch nextState {
-					case control.Schedule_Interval_OFF, control.Schedule_Interval_UNKNOWN:
-						c.controller.TurnOff(room.config.Radiator.Address)
-					case control.Schedule_Interval_ON:
-						c.controller.TurnOn(room.config.Radiator.Address)
-					}
-				} else {
-					log.Printf("No config for room: %s", t.Name)
-				}
-			}
+			c.tick()
 		case <-ctx.Done():
 			return
 		}
@@ -175,9 +199,11 @@ func main() {
 		data := struct {
 			Title string
 			Ctrl  *Controller
+			Now   time.Time
 		}{
 			"foobar",
 			controller,
+			time.Now(),
 		}
 		err := statusHtml.Execute(w, data)
 		if err != nil {
