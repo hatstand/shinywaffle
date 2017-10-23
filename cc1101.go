@@ -333,7 +333,6 @@ func (cc1101 *CC1101) SetSyncWord(word uint16) error {
 }
 
 func (c *CC1101) SetState(state byte) error {
-	log.Printf("Setting chip state: %#02x\n", state)
 	_, err := c.Strobe(state)
 	// Worst case state change is ~1ms for IDLE -> RX with calibration.
 	time.Sleep(1)
@@ -358,7 +357,6 @@ func (c *CC1101) FlushRx() {
 }
 
 func (c *CC1101) Receive() ([]byte, error) {
-	log.Println("Receiving packet...")
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -366,7 +364,6 @@ func (c *CC1101) Receive() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("RXBYTES: 0x%x\n", rxbytes)
 	// Flush RX buffer.
 	defer c.FlushRx()
 
@@ -375,12 +372,10 @@ func (c *CC1101) Receive() ([]byte, error) {
 	}
 
 	if rxbytes&BYTES_IN_RXFIFO > 0 {
-		log.Printf("Bytes in buffer: %d", rxbytes&BYTES_IN_RXFIFO)
 		numBytes, err := c.ReadSingleByte(RXFIFO)
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("Receiving %d bytes", numBytes)
 		var recv []byte
 		if numBytes > 0 {
 			recv, err = c.ReadBurst(RXFIFO, numBytes)
@@ -388,14 +383,11 @@ func (c *CC1101) Receive() ([]byte, error) {
 				return nil, err
 			}
 		}
-		status, err := c.ReadBurst(RXFIFO, 2)
+		_, err = c.ReadBurst(RXFIFO, 2)
 		if err != nil {
 			return nil, err
 		}
 
-		log.Printf("Status RSSI:   %ddBm\n", convertRSSI(int(status[RSSI])))
-		log.Printf("Status LQI:    %d\n", status[LQI]&0x7f)
-		log.Printf("Status CRC OK: %d\n", (status[LQI]&CRC_OK)>>7)
 		return recv, nil
 	} else {
 		return []byte{}, nil
@@ -406,28 +398,22 @@ func (c *CC1101) Send(packet []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	log.Printf("Sending packet: %v\n", packet)
-
 	if len(packet) > 60 {
 		return fmt.Errorf("Packet too long: %d", len(packet))
 	}
-	log.Printf("Writing packet length: %d\n", len(packet))
 	err := c.WriteSingleByte(TXFIFO, byte(len(packet)))
 	if err != nil {
 		return err
 	}
-	log.Println("Writing packet to FIFO")
 	err = c.WriteBurst(TXFIFO, packet)
 	if err != nil {
 		return err
 	}
 
-	log.Println("Enabling TX mode")
 	c.SetTx()
 	defer c.Strobe(SFTX)
 	defer c.Strobe(SIDLE)
 
-	log.Println("Waiting for sync to transmit")
 	for {
 		sync, err := c.gdo2.Read()
 		if err != nil {
@@ -438,7 +424,6 @@ func (c *CC1101) Send(packet []byte) error {
 		}
 	}
 
-	log.Println("Waiting for end of packet")
 	for {
 		sync, err := c.gdo2.Read()
 		if err != nil {
