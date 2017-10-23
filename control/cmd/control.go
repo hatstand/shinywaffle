@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
 	"time"
 
 	"github.com/felixge/pidctrl"
@@ -32,8 +33,8 @@ const (
 
 var (
 	statusHtml = template.Must(template.New("status.html").Funcs(template.FuncMap{
-		"convertColour": convertColour,
-		"getSchedule":   getSchedule,
+		"convertColour":  convertColour,
+		"renderSchedule": renderSchedule,
 	}).ParseFiles("status.html"))
 )
 
@@ -66,13 +67,14 @@ type Interval struct {
 	Offset int // Percentage from 0-100 of 24 hours
 }
 
-func getSchedule(room *Room) []Interval {
-	intervals := room.schedule.FetchDay()
+func renderSchedule(s *control.Schedule) []Interval {
 	var ret []Interval
-	for _, i := range intervals {
+	for _, i := range s.Interval {
+		begin := i.Begin.GetHour()*60 + i.Begin.GetMinute()
+		end := i.End.GetHour()*60 + i.End.GetMinute()
 		ret = append(ret, Interval{
-			Width:  int(float32(i.End-i.Start) / 24 / 60 * 100),
-			Offset: int(float32(i.Start) / 24 / 60 * 100),
+			Width:  int(float32(end-begin) / 24 / 60 * 100),
+			Offset: int(float32(begin) / 24 / 60 * 100),
 		})
 	}
 	return ret
@@ -163,6 +165,40 @@ func (c *Controller) ControlRadiators(ctx context.Context) {
 	}
 }
 
+type ByName []*control.Zone
+
+func (a ByName) Len() int           { return len(a) }
+func (a ByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByName) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
+func (s *Controller) GetZones(ctx context.Context, req *control.GetZonesRequest) (*control.GetZonesReply, error) {
+	var ret control.GetZonesReply
+	for _, value := range s.Config {
+		ret.Zone = append(ret.Zone, value.config)
+	}
+	sort.Sort(ByName(ret.Zone))
+	return &ret, nil
+}
+
+func (s *Controller) GetZoneStatus(ctx context.Context, req *control.GetZoneStatusRequest) (*control.GetZoneStatusReply, error) {
+	for _, r := range s.Config {
+		if r.config.GetName() == req.GetName() {
+			return &control.GetZoneStatusReply{
+				Name:               r.config.GetName(),
+				TargetTemperature:  float32(s.checkSchedule(r)),
+				CurrentTemperature: float32(r.LastTemp),
+				State:              s.GetNextState(r),
+				Schedule:           r.config.GetSchedule(),
+			}, nil
+		}
+	}
+	return &control.GetZoneStatusReply{}, nil
+}
+
+func (s *Controller) SetZoneSchedule(ctx context.Context, req *control.SetZoneScheduleRequest) (*control.SetZoneScheduleReply, error) {
+	return &control.SetZoneScheduleReply{}, nil
+}
+
 type stubRadiatorController struct {
 }
 
@@ -182,36 +218,6 @@ func createRadiatorController() radiatorController {
 	}
 }
 
-type service struct {
-	config *control.Config
-}
-
-func NewService(c *control.Config) *service {
-	return &service{config: c}
-}
-
-func (s *service) GetZones(ctx context.Context, req *control.GetZonesRequest) (*control.GetZonesReply, error) {
-	return &control.GetZonesReply{
-		Zone: s.config.Zone,
-	}, nil
-}
-
-func (s *service) GetZoneStatus(ctx context.Context, req *control.GetZoneStatusRequest) (*control.GetZoneStatusReply, error) {
-	for _, r := range s.config.Zone {
-		if r.GetName() == req.GetName() {
-			return &control.GetZoneStatusReply{
-				Name:     r.GetName(),
-				Schedule: r.GetSchedule(),
-			}, nil
-		}
-	}
-	return &control.GetZoneStatusReply{}, nil
-}
-
-func (s *service) SetZoneSchedule(ctx context.Context, req *control.SetZoneScheduleRequest) (*control.SetZoneScheduleReply, error) {
-	return &control.SetZoneScheduleReply{}, nil
-}
-
 func main() {
 	flag.Parse()
 
@@ -225,16 +231,30 @@ func main() {
 		fmt.Fprintf(w, "Hello, world!")
 	})
 	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		var ret []*control.GetZoneStatusReply
+		zones, err := controller.GetZones(ctx, &control.GetZonesRequest{})
+		if err == nil {
+			for _, z := range zones.Zone {
+				status, err := controller.GetZoneStatus(ctx, &control.GetZoneStatusRequest{
+					Name: z.GetName(),
+				})
+				if err == nil {
+					ret = append(ret, status)
+				}
+			}
+		}
 		data := struct {
 			Title string
-			Ctrl  *Controller
 			Now   time.Time
+			Zones []*control.GetZoneStatusReply
+			Error error
 		}{
 			"foobar",
-			controller,
 			time.Now(),
+			ret,
+			err,
 		}
-		err := statusHtml.Execute(w, data)
+		err = statusHtml.Execute(w, data)
 		if err != nil {
 			panic(err)
 		}

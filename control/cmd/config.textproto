@@ -68,7 +68,7 @@ zone {
       }
       end {
         hour: 23
-        minute: 59
+        minute: 60
       }
       target_temperature: 15
     }

@@ -114,23 +114,21 @@
     </div>
 
     <div>{{ .Now }}</div>
+    <div>{{ .Error }}</div>
 
     <div class="status">
-      {{ with $Ctrl := .Ctrl }}
-      {{ range $key, $value := .Config }}
+      {{ range $zone := .Zones }}
       <div class="room">
-        {{ with $state := $Ctrl.GetNextState $value }}
-          {{ if eq $state 1 }}
-            <div class="light off"></div>
-          {{ else if eq $state 2 }}
-            <div class="light on"></div>
-          {{ else }}
-            <div class="light"></div>
-          {{ end }}
+        {{ if $zone.GetState | eq 1 }}
+          <div class="light on"></div>
+        {{ else if $zone.GetState | eq 2 }}
+          <div class="light off"></div>
+        {{ else }}
+          <div class="light"></div>
         {{ end }}
-        <div class="name">{{ $key }}</div>
-        <div class="field">Set to: <span class="value">{{ $value.Pid.Get }}</span></div>
-        <div class="field">Current Temperature: <span class="value">{{ printf "%.1f" $value.LastTemp }}</span></div>
+        <div class="name">{{ $zone.Name }}</div>
+        <div class="field">Set to: <span class="value">{{ $zone.GetTargetTemperature }}</span></div>
+        <div class="field">Current Temperature: <span class="value">{{ printf "%.1f" $zone.GetCurrentTemperature}}</span></div>
         <div class="schedule">
           <div class="header">
             <span class="time">0</span>
@@ -140,13 +138,12 @@
             <span class="time">24</span>
           </div>
           <div class="contents">
-            {{ range $i := getSchedule $value }}
+            {{ range $i := renderSchedule $zone.GetSchedule }}
               <div class="interval" style="left: {{ $i.Offset }}%; width: {{ $i.Width }}%"></div>
             {{ end }}
           </div>
         </div>
       </div>
-      {{ end }}
       {{ end }}
     </div>
   </body>
