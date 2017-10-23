@@ -3,7 +3,6 @@ package control
 import (
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -12,14 +11,14 @@ var (
 		Interval: []*Schedule_Interval{
 			&Schedule_Interval{
 				Begin: &Schedule_Time{
-					Hour:   proto.Int32(9),
-					Minute: proto.Int32(0),
+					Hour:   9,
+					Minute: 0,
 				},
 				End: &Schedule_Time{
-					Hour:   proto.Int32(10),
-					Minute: proto.Int32(30),
+					Hour:   10,
+					Minute: 30,
 				},
-				Type: Schedule_Interval_ON.Enum(),
+				TargetTemperature: 15,
 			},
 		},
 	}
@@ -28,25 +27,25 @@ var (
 		Interval: []*Schedule_Interval{
 			&Schedule_Interval{
 				Begin: &Schedule_Time{
-					Hour:   proto.Int32(9),
-					Minute: proto.Int32(0),
+					Hour:   9,
+					Minute: 0,
 				},
 				End: &Schedule_Time{
-					Hour:   proto.Int32(10),
-					Minute: proto.Int32(30),
+					Hour:   10,
+					Minute: 30,
 				},
-				Type: Schedule_Interval_ON.Enum(),
+				TargetTemperature: 12,
 			},
 			&Schedule_Interval{
 				Begin: &Schedule_Time{
-					Hour:   proto.Int32(11),
-					Minute: proto.Int32(0),
+					Hour:   11,
+					Minute: 0,
 				},
 				End: &Schedule_Time{
-					Hour:   proto.Int32(12),
-					Minute: proto.Int32(0),
+					Hour:   12,
+					Minute: 0,
 				},
-				Type: Schedule_Interval_OFF.Enum(),
+				TargetTemperature: 42,
 			},
 		},
 	}
@@ -61,10 +60,10 @@ func TestBuildTree(t *testing.T) {
 	Convey("Contains", t, func() {
 		tree := NewSchedule(scheduleB)
 		So(tree, ShouldNotBeNil)
-		So(tree.Query(9, 1), ShouldEqual, Schedule_Interval_ON)
-		So(tree.Query(9, 0), ShouldEqual, Schedule_Interval_UNKNOWN)
-		So(tree.Query(10, 29), ShouldEqual, Schedule_Interval_ON)
-		So(tree.Query(10, 30), ShouldEqual, Schedule_Interval_UNKNOWN)
-		So(tree.Query(11, 30), ShouldEqual, Schedule_Interval_OFF)
+		So(tree.Query(9, 1), ShouldEqual, 12)
+		So(tree.Query(9, 0), ShouldEqual, -1)
+		So(tree.Query(10, 29), ShouldEqual, 12)
+		So(tree.Query(10, 30), ShouldEqual, -1)
+		So(tree.Query(11, 30), ShouldEqual, 42)
 	})
 }
