@@ -1,0 +1,29 @@
+<style>
+  .weather {
+    height: 50px;
+  }
+
+  .current-temp {
+    display: inline-block;
+    font-size: 20px;
+    font-weight: bold;
+    vertical-align: middle;
+  }
+
+  .minmax-temp {
+    display: inline-block;
+    color: #999;
+    margin-left: 12px;
+    vertical-align: middle;
+  }
+
+  .weather-icon {
+    display: inline-block;
+    vertical-align: middle;
+  }
+</style>
+<div class="weather">
+  <img class="weather-icon" src="{{ .Icon }}">
+  <div class="current-temp">{{ .CurrentTemp | printf "%.1f" }}°C</div>
+  <div class="minmax-temp">{{ .MinTemp }}/{{ .MaxTemp }}°C</div>
+</div>

@@ -103,7 +103,7 @@ func RegisterHeatingControlServiceHandler(ctx context.Context, mux *runtime.Serv
 func RegisterHeatingControlServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client HeatingControlServiceClient) error {
 
 	mux.Handle("GET", pattern_HeatingControlService_GetZones_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {
@@ -132,7 +132,7 @@ func RegisterHeatingControlServiceHandlerClient(ctx context.Context, mux *runtim
 	})
 
 	mux.Handle("GET", pattern_HeatingControlService_GetZoneStatus_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		if cn, ok := w.(http.CloseNotifier); ok {
 			go func(done <-chan struct{}, closed <-chan bool) {

@@ -20,6 +20,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/hatstand/shinywaffle/control"
+	"github.com/hatstand/shinywaffle/weather"
 	"github.com/hatstand/shinywaffle/wirelesstag"
 	"google.golang.org/grpc"
 )
@@ -39,7 +40,7 @@ var (
 	statusHtml = template.Must(template.New("status.html").Funcs(template.FuncMap{
 		"convertColour":  convertColour,
 		"renderSchedule": renderSchedule,
-	}).ParseFiles("status.html"))
+	}).ParseFiles("status.html", "weather.html"))
 )
 
 type radiatorController interface {
@@ -284,16 +285,19 @@ func main() {
 				}
 			}
 		}
+		weath, _ := weather.FetchCurrentWeather("London")
 		data := struct {
-			Title string
-			Now   time.Time
-			Zones []*control.GetZoneStatusReply
-			Error error
+			Title   string
+			Now     time.Time
+			Zones   []*control.GetZoneStatusReply
+			Error   error
+			Weather *weather.Observation
 		}{
 			"foobar",
 			time.Now(),
 			ret,
 			err,
+			weath,
 		}
 		err = statusHtml.Execute(w, data)
 		if err != nil {
