@@ -16,17 +16,17 @@ func convertTemp(temp float32) byte {
 	return byte(int(temp*10) * 2 / 10)
 }
 
-type Controller struct {
+type RadioController struct {
 	radio shinywaffle.CC1101
 }
 
-func NewController() *Controller {
-	return &Controller{
+func NewRadioController() *RadioController {
+	return &RadioController{
 		radio: shinywaffle.NewCC1101(nil),
 	}
 }
 
-func (c *Controller) TurnOn(addr []byte) {
+func (c *RadioController) TurnOn(addr []byte) {
 	packet := []byte{0x57, 0x16, 0x0a}
 	packet = append(packet, addr[0])
 	packet = append(packet, addr[1])
@@ -39,7 +39,7 @@ func (c *Controller) TurnOn(addr []byte) {
 	c.radio.Send(packet)
 }
 
-func (c *Controller) TurnOff(addr []byte) {
+func (c *RadioController) TurnOff(addr []byte) {
 	packet := []byte{0x57, 0x16, 0x0a}
 	packet = append(packet, addr[0])
 	packet = append(packet, addr[1])
