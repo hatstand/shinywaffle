@@ -122,6 +122,9 @@ func main() {
 	uiMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, world!")
 	})
+	uiMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "OK")
+	})
 	uiMux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		var ret []*control.GetZoneStatusReply
 		zones, err := controller.GetZones(ctx, &control.GetZonesRequest{})
