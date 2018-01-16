@@ -13,8 +13,6 @@ const (
 	maxDatagramSize = 8192
 )
 
-var discover = []byte("{\"system\":{\"get_sysinfo\":null},\"emeter\":{\"get_realtime\":null}}")
-
 type SmartPlugMessage struct {
 	Emeter Emeter `json:"emeter"`
 	System System `json:"system"`
@@ -91,7 +89,20 @@ func main() {
 			}
 		}
 	}()
-	conn.WriteTo(obfuscate(discover), addr)
+
+	discover := SmartPlugMessage{
+		System: System{
+			SysInfo: SysInfo{},
+		},
+		Emeter: Emeter{
+			Realtime: Realtime{},
+		},
+	}
+	j, err := json.Marshal(discover)
+	if err != nil {
+		log.Fatal("Error encoding json", err)
+	}
+	conn.WriteTo(obfuscate(j), addr)
 	for packet := range packetCh {
 		fmt.Println(string(deobfuscate(packet)))
 		var message SmartPlugMessage
