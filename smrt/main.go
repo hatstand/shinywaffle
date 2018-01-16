@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -14,6 +14,38 @@ const (
 )
 
 var discover = []byte("{\"system\":{\"get_sysinfo\":null},\"emeter\":{\"get_realtime\":null}}")
+
+type SmartPlugMessage struct {
+	Emeter Emeter `json:"emeter"`
+	System System `json:"system"`
+}
+
+type Emeter struct {
+	Realtime Realtime `json:"get_realtime"`
+}
+
+type System struct {
+	SysInfo SysInfo `json:"get_sysinfo"`
+}
+
+type Realtime struct {
+	Current float32
+	Error   int `json:"err_code"`
+	Power   float32
+	Total   float32
+	Voltage float32
+}
+
+type SysInfo struct {
+	Mode       string `json:"active_mode"`
+	Name       string `json:"alias"`
+	DeviceName string `json:"dev_name"`
+	ID         string `json:"deviceId"`
+	Error      int    `json:"err_code"`
+	MAC        string
+	Model      string
+	State      int `json:"relay_state"`
+}
 
 func obfuscate(data []byte) []byte {
 	k := byte(171)
@@ -61,6 +93,13 @@ func main() {
 	}()
 	conn.WriteTo(obfuscate(discover), addr)
 	for packet := range packetCh {
-		fmt.Println(hex.Dump(deobfuscate(packet)))
+		fmt.Println(string(deobfuscate(packet)))
+		var message SmartPlugMessage
+		err = json.Unmarshal(deobfuscate(packet), &message)
+		if err != nil {
+			log.Fatal("Failed to decode as JSON")
+		}
+		out, _ := json.MarshalIndent(message, "", "  ")
+		fmt.Printf("%s\n", out)
 	}
 }
