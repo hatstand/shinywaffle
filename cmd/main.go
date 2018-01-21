@@ -10,7 +10,7 @@ import (
 
 // Radiator Addresses.
 const (
-	Kitchen = 0x2b7e
+	Kitchen = 0x2bdc
 	Study   = 0x2e04
 	Living  = 0x2bdb
 	Bedroom = 0x2b76

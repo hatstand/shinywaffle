@@ -6,7 +6,7 @@ zone {
   schedule {
     interval {
       begin {
-        hour: 15
+        hour: 12
         minute: 0
       }
       end {
@@ -22,10 +22,13 @@ zone {
   radiator {
     address: "\x2b\xdb"
   }
+  radiator {
+    address: "\x2b\xdc"
+  }
   schedule {
     interval {
       begin {
-        hour: 18
+        hour: 12
         minute: 0
       }
       end {
