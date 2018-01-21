@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ import (
 
 var config = flag.String("config", "config.textproto", "Path to config proto")
 var dryRun = flag.Bool("n", false, "Disables radiator commands")
+var port = flag.Int("port", 8081, "Status port")
+var grpcPort = flag.Int("grpc", 8082, "GRPC service port")
 
 var (
 	statusHtml = template.Must(template.New("status.html").Funcs(template.FuncMap{
@@ -105,7 +108,7 @@ func main() {
 	s := grpc.NewServer()
 	control.RegisterHeatingControlServiceServer(s, controller)
 
-	l, err := net.Listen("tcp", ":8081")
+	l, err := net.Listen("tcp", ":"+strconv.Itoa(*grpcPort))
 	if err != nil {
 		log.Fatalf("Failed to listen on GRPC port: %v", err)
 	}
@@ -159,7 +162,7 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + strconv.Itoa(*port),
 		Handler: NewServeMux(apiMux, uiMux),
 	}
 	go func() {
