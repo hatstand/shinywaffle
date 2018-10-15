@@ -12,5 +12,9 @@ NotifyAccess=main
 WorkingDirectory=/home/pi/go/src/github.com/hatstand/shinywaffle/control/cmd
 ExecStart=/home/pi/go/src/github.com/hatstand/shinywaffle/control/cmd/cmd -config ./config.textproto -secret <api secret> -api <api key>
 
+ExecStartPre=/sbin/modprobe spi_bcm2835
+ExecStopPost=/sbin/rmmod spi_bcm2835
+PermissionsStartOnly=true
+
 [Install]
 WantedBy=multi-user.target
