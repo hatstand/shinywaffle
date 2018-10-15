@@ -1,0 +1,15 @@
+[Unit]
+Description=Heating Control ngrok tunnel
+After=syslog.target network.target
+
+[Service]
+PrivateTmp=true
+Type=simple
+Restart=always
+RestartSec=1min
+ExecStart=/home/pi/ngrok start --config /home/pi/go/src/github.com/hatstand/shinywaffle/control/cmd/ngrok.yaml --all --log stdout
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
