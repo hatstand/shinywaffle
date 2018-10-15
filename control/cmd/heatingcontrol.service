@@ -1,0 +1,16 @@
+[Unit]
+Description=Heating Control Service
+After=network.target
+
+[Service]
+Type=notify
+Restart=always
+RestartSec=1
+User=pi
+WatchdogSec=30
+NotifyAccess=main
+WorkingDirectory=/home/pi/go/src/github.com/hatstand/shinywaffle/control/cmd
+ExecStart=/home/pi/go/src/github.com/hatstand/shinywaffle/control/cmd/cmd -config ./config.textproto -secret <api secret> -api <api key>
+
+[Install]
+WantedBy=multi-user.target

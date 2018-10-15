@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/hatstand/shinywaffle/control"
 	"github.com/hatstand/shinywaffle/weather"
@@ -171,7 +172,23 @@ func main() {
 	}
 	go func() {
 		log.Println("Listening...")
-		if err := srv.ListenAndServe(); err != nil {
+		ln, err := net.Listen("tcp", ":" + strconv.Itoa(*port))
+		if err != nil {
+			log.Fatalf("Failed to listen on port: %v", *port)
+		}
+		go func() {
+			// Tells systemd that requests can now be served.
+			daemon.SdNotify(false, daemon.SdNotifyReady)
+			for {
+				// Watchdog check.
+				_, err := http.Get("http://127.0.0.1:" + strconv.Itoa(*port))
+				if err == nil {
+					daemon.SdNotify(false, daemon.SdNotifyWatchdog)
+				}
+				time.Sleep(5 * time.Second)
+			}
+		}()
+		if err := srv.Serve(ln); err != nil {
 			log.Println(err)
 		}
 	}()
