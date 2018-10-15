@@ -116,7 +116,9 @@
     <div>{{ .Now }}</div>
     <div>{{ .Error }}</div>
 
-    {{ template "weather.html" .Weather }}
+    {{ if .Weather }}
+      {{ template "weather.html" .Weather }}
+    {{ end }}
 
     <div class="status">
       {{ range $zone := .Zones }}

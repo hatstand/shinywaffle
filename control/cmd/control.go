@@ -141,7 +141,11 @@ func main() {
 				}
 			}
 		}
-		weath, _ := weather.FetchCurrentWeather("London")
+		weath, err := weather.FetchCurrentWeather("London")
+		if err != nil {
+			log.Printf("Failed to fetch current weather: %v", err)
+			weath = nil
+		}
 		data := struct {
 			Title   string
 			Now     time.Time
