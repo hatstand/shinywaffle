@@ -99,10 +99,12 @@ func (c *Controller) tick() {
 			switch nextState {
 			case HeatingState_OFF, HeatingState_UNKNOWN:
 				for _, r := range room.config.Radiator {
+					log.Printf("Turning off %s %v", room.config.Name, r.GetAddress())
 					c.controller.TurnOff(r.GetAddress())
 				}
 			case HeatingState_ON:
 				for _, r := range room.config.Radiator {
+					log.Printf("Turning off %s %v", room.config.Name, r.GetAddress())
 					c.controller.TurnOn(r.GetAddress())
 				}
 			}
