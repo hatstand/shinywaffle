@@ -6,7 +6,7 @@ zone {
   schedule {
     interval {
       begin {
-        hour: 12
+        hour: 8
         minute: 0
       }
       end {
@@ -28,7 +28,7 @@ zone {
   schedule {
     interval {
       begin {
-        hour: 12
+        hour: 8
         minute: 0
       }
       end {
@@ -47,11 +47,11 @@ zone {
   schedule {
     interval {
       begin {
-        hour: 9
+        hour: 7
         minute: 0
       }
       end {
-        hour: 11
+        hour: 9
         minute: 0
       }
       target_temperature: 18
