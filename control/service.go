@@ -3,6 +3,7 @@ package control
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"sort"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/felixge/pidctrl"
 	"github.com/golang/protobuf/proto"
+	"github.com/hatstand/shinywaffle/calendar"
 	"github.com/hatstand/shinywaffle/wirelesstag"
 )
 
@@ -25,7 +27,6 @@ const (
 type Room struct {
 	Pid      *pidctrl.PIDController
 	config   *Zone
-	schedule *IntervalTree
 	LastTemp float64
 }
 
@@ -57,9 +58,8 @@ func NewController(path string, controller RadiatorController) *Controller {
 		ctrl := pidctrl.NewPIDController(kP, kI, kD)
 		ctrl.SetOutputLimits(0, 100)
 		m[room.GetName()] = &Room{
-			Pid:      ctrl,
-			config:   room,
-			schedule: NewSchedule(room.GetSchedule()),
+			Pid:    ctrl,
+			config: room,
 		}
 	}
 	return &Controller{
@@ -68,12 +68,37 @@ func NewController(path string, controller RadiatorController) *Controller {
 	}
 }
 
-func (c *Controller) checkSchedule(room *Room) int32 {
-	return room.schedule.QueryTime(time.Now())
+func (c *Controller) checkSchedule(room *Room) (int32, error) {
+	on, err := calendar.GetSchedule(room.config.CalendarId)
+	if err != nil {
+		return -1, fmt.Errorf("Failed to fetch schedule for room %s: %v", room.config.Name, err)
+	}
+	now := time.Now()
+	for _, period := range on {
+		start, err := time.Parse(time.RFC3339, period.Start)
+		if err != nil {
+			log.Printf("Failed to parse time %s: %v", period.Start, err)
+			continue
+		}
+		end, err := time.Parse(time.RFC3339, period.End)
+		if err != nil {
+			log.Printf("Failed to parse time %s: %v", period.End, err)
+			continue
+		}
+
+		if now.After(start) && now.Before(end) {
+			return room.config.TargetTemperature, nil
+		}
+	}
+	return -1, nil
 }
 
 func (c *Controller) GetNextState(room *Room) HeatingState {
-	scheduledTemp := c.checkSchedule(room)
+	scheduledTemp, err := c.checkSchedule(room)
+	if err != nil {
+		log.Printf("Failed to get schedule for room %s: %v", room.config.Name, err)
+		return HeatingState_OFF
+	}
 	room.Pid.Set(float64(scheduledTemp))
 	value := room.Pid.UpdateDuration(room.LastTemp, time.Since(c.lastUpdated))
 	log.Printf("Room: %s Temperature: %.1f Target: %d PID: %f\n", room.config.GetName(), room.LastTemp, scheduledTemp, value)
@@ -145,12 +170,19 @@ func (s *Controller) GetZones(ctx context.Context, req *GetZonesRequest) (*GetZo
 func (s *Controller) GetZoneStatus(ctx context.Context, req *GetZoneStatusRequest) (*GetZoneStatusReply, error) {
 	for _, r := range s.Config {
 		if r.config.GetName() == req.GetName() {
+			target, err := s.checkSchedule(r)
+			if err != nil {
+				return &GetZoneStatusReply{
+					Name:               r.config.GetName(),
+					CurrentTemperature: float32(r.LastTemp),
+					State:              s.GetNextState(r),
+				}, fmt.Errorf("Failed to get current target temp for request %+v: %v", req, err)
+			}
 			return &GetZoneStatusReply{
 				Name:               r.config.GetName(),
-				TargetTemperature:  float32(s.checkSchedule(r)),
+				TargetTemperature:  float32(target),
 				CurrentTemperature: float32(r.LastTemp),
 				State:              s.GetNextState(r),
-				Schedule:           r.config.GetSchedule(),
 			}, nil
 		}
 	}

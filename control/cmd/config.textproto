@@ -3,19 +3,8 @@ zone {
   radiator {
     address: "\x2e\x04"
   }
-  schedule {
-    interval {
-      begin {
-        hour: 8
-        minute: 0
-      }
-      end {
-        hour: 23
-        minute: 59
-      }
-      target_temperature: 20
-    }
-  }
+  calendar_id: "rf0m8vm1skp5nhjp4eg0q0imdk@group.calendar.google.com"
+  target_temperature: 20
 }
 zone {
   name: "Living Room"
@@ -25,55 +14,22 @@ zone {
   radiator {
     address: "\x2b\xdc"
   }
-  schedule {
-    interval {
-      begin {
-        hour: 8
-        minute: 0
-      }
-      end {
-        hour: 23
-        minute: 59
-      }
-      target_temperature: 20
-    }
-  }
+  calendar_id: "p6j07ks29qfh5fdnu7s9mo321c@group.calendar.google.com"
+  target_temperature: 20
 }
 zone {
   name: "Bedroom"
   radiator {
     address: "\x2b\x76"
   }
-  schedule {
-    interval {
-      begin {
-        hour: 7
-        minute: 0
-      }
-      end {
-        hour: 9
-        minute: 0
-      }
-      target_temperature: 18
-    }
-  }
+  calendar_id: "oep295difakq4tt8a48of6q724@group.calendar.google.com"
+  target_temperature: 18
 }
 zone {
   name: "Hall"
   radiator {
     address: "\x2c\x2c"
   }
-  schedule {
-    interval {
-      begin {
-        hour: 0
-        minute: 0
-      }
-      end {
-        hour: 23
-        minute: 60
-      }
-      target_temperature: 15
-    }
-  }
+  calendar_id: "gb0gp6h4ti4ocl4sas5c1jqou4@group.calendar.google.com"
+  target_temperature: 15
 }

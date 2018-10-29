@@ -5,18 +5,3 @@ package control;
 message Radiator {
   bytes address = 1;
 }
-
-message Schedule {
-  message Time {
-    int32 hour = 1;
-    int32 minute = 2;
-  }
-
-  message Interval {
-    Time begin = 1;
-    Time end = 2;
-    int32 target_temperature = 3;
-  }
-
-  repeated Interval interval = 1;
-}

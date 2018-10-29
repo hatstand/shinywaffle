@@ -29,8 +29,7 @@ var grpcPort = flag.Int("grpc", 8082, "GRPC service port")
 
 var (
 	statusHtml = template.Must(template.New("status.html").Funcs(template.FuncMap{
-		"convertColour":  convertColour,
-		"renderSchedule": renderSchedule,
+		"convertColour": convertColour,
 	}).ParseFiles("status.html", "weather.html"))
 )
 
@@ -43,19 +42,6 @@ func convertColour(temp float64) int {
 type Interval struct {
 	Width  int // Percentage from 0-100 of 24 hours
 	Offset int // Percentage from 0-100 of 24 hours
-}
-
-func renderSchedule(s *control.Schedule) []Interval {
-	var ret []Interval
-	for _, i := range s.Interval {
-		begin := i.Begin.GetHour()*60 + i.Begin.GetMinute()
-		end := i.End.GetHour()*60 + i.End.GetMinute()
-		ret = append(ret, Interval{
-			Width:  int(float32(end-begin) / 24 / 60 * 100),
-			Offset: int(float32(begin) / 24 / 60 * 100),
-		})
-	}
-	return ret
 }
 
 type stubRadiatorController struct {

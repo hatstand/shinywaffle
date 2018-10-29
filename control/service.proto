@@ -8,7 +8,10 @@ import "google/api/annotations.proto";
 message Zone {
   string name = 1;
   repeated Radiator radiator = 2;
-  Schedule schedule = 3;
+  string calendar_id = 4;
+  int32 target_temperature = 5;
+
+  reserved 3;
 }
 
 enum HeatingState {
@@ -34,11 +37,11 @@ message GetZoneStatusReply {
   float target_temperature = 2;
   float current_temperature = 3;
   HeatingState state = 4;
-  Schedule schedule = 5;
+
+  reserved 5;
 }
 
 message SetZoneScheduleRequest {
-  Schedule schedule = 1;
 }
 
 message SetZoneScheduleReply {

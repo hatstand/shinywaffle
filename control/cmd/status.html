@@ -133,20 +133,6 @@
         <div class="name">{{ $zone.Name }}</div>
         <div class="field">Set to: <span class="value">{{ $zone.GetTargetTemperature }}</span></div>
         <div class="field">Current Temperature: <span class="value">{{ printf "%.1f" $zone.GetCurrentTemperature}}</span></div>
-        <div class="schedule">
-          <div class="header">
-            <span class="time">0</span>
-            <span class="time">6</span>
-            <span class="time">12</span>
-            <span class="time">18</span>
-            <span class="time">24</span>
-          </div>
-          <div class="contents">
-            {{ range $i := renderSchedule $zone.GetSchedule }}
-              <div class="interval" style="left: {{ $i.Offset }}%; width: {{ $i.Width }}%"></div>
-            {{ end }}
-          </div>
-        </div>
       </div>
       {{ end }}
     </div>
