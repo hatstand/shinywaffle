@@ -124,6 +124,6 @@ func (srv *CalendarScheduleService) GetSchedule(calendarId string) ([]*calendar.
 	if err != nil {
 		return nil, fmt.Errorf("Failed to request free/busy: %v", err)
 	}
-	srv.cache.Set(calendarId, resp, cache.DefaultExpiration)
+	srv.cache.Set(calendarId, resp.Calendars[calendarId].Busy, cache.DefaultExpiration)
 	return resp.Calendars[calendarId].Busy, nil
 }
