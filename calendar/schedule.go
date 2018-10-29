@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/patrickmn/go-cache"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -71,7 +73,12 @@ func saveToken(path string, token *oauth2.Token) error {
 	return json.NewEncoder(f).Encode(token)
 }
 
-func GetSchedule(calendarId string) ([]*calendar.TimePeriod, error) {
+type CalendarScheduleService struct {
+	cache   *cache.Cache
+	service *calendar.Service
+}
+
+func NewCalendarScheduleService() (*CalendarScheduleService, error) {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
 		return nil, fmt.Errorf("Unable to read client secret file: %v", err)
@@ -91,8 +98,17 @@ func GetSchedule(calendarId string) ([]*calendar.TimePeriod, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Unable to retrieve Calendar client: %v", err)
 	}
+	return &CalendarScheduleService{
+		cache:   cache.New(time.Minute*10, time.Minute*20),
+		service: srv,
+	}, nil
+}
 
-	//Id: "rf0m8vm1skp5nhjp4eg0q0imdk@group.calendar.google.com",
+func (srv *CalendarScheduleService) GetSchedule(calendarId string) ([]*calendar.TimePeriod, error) {
+	cached, found := srv.cache.Get(calendarId)
+	if found {
+		return cached.([]*calendar.TimePeriod), nil
+	}
 
 	request := &calendar.FreeBusyRequest{
 		Items: []*calendar.FreeBusyRequestItem{
@@ -103,9 +119,11 @@ func GetSchedule(calendarId string) ([]*calendar.TimePeriod, error) {
 		TimeMin: time.Now().Add(time.Hour * -1).Format(time.RFC3339),
 		TimeMax: time.Now().Add(time.Hour * 24 * 7).Format(time.RFC3339),
 	}
-	resp, err := srv.Freebusy.Query(request).Do()
+	log.Printf("Fetching calendar for %s", calendarId)
+	resp, err := srv.service.Freebusy.Query(request).Do()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to request free/busy: %v", err)
 	}
+	srv.cache.Set(calendarId, resp, cache.DefaultExpiration)
 	return resp.Calendars[calendarId].Busy, nil
 }

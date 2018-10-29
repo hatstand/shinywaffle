@@ -17,6 +17,7 @@ import (
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/hatstand/shinywaffle/calendar"
 	"github.com/hatstand/shinywaffle/control"
 	"github.com/hatstand/shinywaffle/weather"
 	"google.golang.org/grpc"
@@ -89,7 +90,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	controller := control.NewController(*config, createRadiatorController())
+	calendarService, err := calendar.NewCalendarScheduleService()
+	if err != nil {
+		log.Fatalf("Failed to start calendar service: %v", err)
+	}
+
+	controller := control.NewController(*config, createRadiatorController(), calendarService)
 	go controller.ControlRadiators(ctx)
 
 	s := grpc.NewServer()

@@ -36,12 +36,13 @@ type RadiatorController interface {
 }
 
 type Controller struct {
-	Config      map[string]*Room
-	controller  RadiatorController
-	lastUpdated time.Time
+	Config          map[string]*Room
+	controller      RadiatorController
+	lastUpdated     time.Time
+	calendarService *calendar.CalendarScheduleService
 }
 
-func NewController(path string, controller RadiatorController) *Controller {
+func NewController(path string, controller RadiatorController, calendarService *calendar.CalendarScheduleService) *Controller {
 	configText, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatalf("Failed to read config file: %s %v", path, err)
@@ -63,13 +64,14 @@ func NewController(path string, controller RadiatorController) *Controller {
 		}
 	}
 	return &Controller{
-		Config:     m,
-		controller: controller,
+		Config:          m,
+		controller:      controller,
+		calendarService: calendarService,
 	}
 }
 
 func (c *Controller) checkSchedule(room *Room) (int32, error) {
-	on, err := calendar.GetSchedule(room.config.CalendarId)
+	on, err := c.calendarService.GetSchedule(room.config.CalendarId)
 	if err != nil {
 		return -1, fmt.Errorf("Failed to fetch schedule for room %s: %v", room.config.Name, err)
 	}
