@@ -164,7 +164,7 @@ func main() {
 	}
 	go func() {
 		log.Println("Listening...")
-		ln, err := net.Listen("tcp", ":" + strconv.Itoa(*port))
+		ln, err := net.Listen("tcp", ":"+strconv.Itoa(*port))
 		if err != nil {
 			log.Fatalf("Failed to listen on port: %v", *port)
 		}
@@ -173,10 +173,11 @@ func main() {
 			daemon.SdNotify(false, daemon.SdNotifyReady)
 			for {
 				// Watchdog check.
-				_, err := http.Get("http://127.0.0.1:" + strconv.Itoa(*port))
+				resp, err := http.Get("http://127.0.0.1:" + strconv.Itoa(*port))
 				if err == nil {
 					daemon.SdNotify(false, daemon.SdNotifyWatchdog)
 				}
+				resp.Body.Close()
 				time.Sleep(5 * time.Second)
 			}
 		}()
