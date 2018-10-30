@@ -188,12 +188,12 @@ func parseWind(m string) (int, int, error) {
 		} else {
 			direction, err = strconv.Atoi(windParsed[1])
 			if err != nil {
-				return 0, 0, fmt.Errorf("Failed to parse wind: %v from METAR: %s", m)
+				return 0, 0, fmt.Errorf("Failed to parse wind: %v from METAR: %s", windParsed[1], m)
 			}
 		}
 		speed, err = strconv.Atoi(windParsed[2])
 		if err != nil {
-			return 0, 0, fmt.Errorf("Failed to parse wind: %v from METAR: %s", m)
+			return 0, 0, fmt.Errorf("Failed to parse wind: %v from METAR: %s", windParsed[2], m)
 		}
 	} else {
 		return 0, 0, fmt.Errorf("Could not parse wind from METAR: %s", m)
