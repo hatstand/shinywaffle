@@ -92,6 +92,10 @@ func main() {
 	defer cancel()
 
 	telemetry := telemetry.NewPublisher()
+	err := telemetry.Hello()
+	if err != nil {
+		log.Fatalf("Failed to say hello to IoT: %v", err)
+	}
 
 	calendarService, err := calendar.NewCalendarScheduleService()
 	if err != nil {

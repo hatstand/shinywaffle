@@ -8,6 +8,8 @@ It is generated from these files:
 	telemetry.proto
 
 It has these top-level messages:
+	IOTMessage
+	HelloMessage
 	TelemetryMessage
 */
 package telemetry
@@ -27,6 +29,135 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+type IOTMessage struct {
+	// Types that are valid to be assigned to IotMessage:
+	//	*IOTMessage_Hello
+	//	*IOTMessage_Telemetry
+	IotMessage isIOTMessage_IotMessage `protobuf_oneof:"iot_message"`
+}
+
+func (m *IOTMessage) Reset()                    { *m = IOTMessage{} }
+func (m *IOTMessage) String() string            { return proto.CompactTextString(m) }
+func (*IOTMessage) ProtoMessage()               {}
+func (*IOTMessage) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+
+type isIOTMessage_IotMessage interface {
+	isIOTMessage_IotMessage()
+}
+
+type IOTMessage_Hello struct {
+	Hello *HelloMessage `protobuf:"bytes,1,opt,name=hello,oneof"`
+}
+type IOTMessage_Telemetry struct {
+	Telemetry *TelemetryMessage `protobuf:"bytes,2,opt,name=telemetry,oneof"`
+}
+
+func (*IOTMessage_Hello) isIOTMessage_IotMessage()     {}
+func (*IOTMessage_Telemetry) isIOTMessage_IotMessage() {}
+
+func (m *IOTMessage) GetIotMessage() isIOTMessage_IotMessage {
+	if m != nil {
+		return m.IotMessage
+	}
+	return nil
+}
+
+func (m *IOTMessage) GetHello() *HelloMessage {
+	if x, ok := m.GetIotMessage().(*IOTMessage_Hello); ok {
+		return x.Hello
+	}
+	return nil
+}
+
+func (m *IOTMessage) GetTelemetry() *TelemetryMessage {
+	if x, ok := m.GetIotMessage().(*IOTMessage_Telemetry); ok {
+		return x.Telemetry
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*IOTMessage) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _IOTMessage_OneofMarshaler, _IOTMessage_OneofUnmarshaler, _IOTMessage_OneofSizer, []interface{}{
+		(*IOTMessage_Hello)(nil),
+		(*IOTMessage_Telemetry)(nil),
+	}
+}
+
+func _IOTMessage_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*IOTMessage)
+	// iot_message
+	switch x := m.IotMessage.(type) {
+	case *IOTMessage_Hello:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Hello); err != nil {
+			return err
+		}
+	case *IOTMessage_Telemetry:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Telemetry); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("IOTMessage.IotMessage has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _IOTMessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*IOTMessage)
+	switch tag {
+	case 1: // iot_message.hello
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(HelloMessage)
+		err := b.DecodeMessage(msg)
+		m.IotMessage = &IOTMessage_Hello{msg}
+		return true, err
+	case 2: // iot_message.telemetry
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(TelemetryMessage)
+		err := b.DecodeMessage(msg)
+		m.IotMessage = &IOTMessage_Telemetry{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _IOTMessage_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*IOTMessage)
+	// iot_message
+	switch x := m.IotMessage.(type) {
+	case *IOTMessage_Hello:
+		s := proto.Size(x.Hello)
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *IOTMessage_Telemetry:
+		s := proto.Size(x.Telemetry)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type HelloMessage struct {
+}
+
+func (m *HelloMessage) Reset()                    { *m = HelloMessage{} }
+func (m *HelloMessage) String() string            { return proto.CompactTextString(m) }
+func (*HelloMessage) ProtoMessage()               {}
+func (*HelloMessage) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
 type TelemetryMessage struct {
 	Name        string  `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
 	Temperature float64 `protobuf:"fixed64,2,opt,name=temperature" json:"temperature,omitempty"`
@@ -36,7 +167,7 @@ type TelemetryMessage struct {
 func (m *TelemetryMessage) Reset()                    { *m = TelemetryMessage{} }
 func (m *TelemetryMessage) String() string            { return proto.CompactTextString(m) }
 func (*TelemetryMessage) ProtoMessage()               {}
-func (*TelemetryMessage) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (*TelemetryMessage) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
 func (m *TelemetryMessage) GetName() string {
 	if m != nil {
@@ -60,19 +191,25 @@ func (m *TelemetryMessage) GetOn() bool {
 }
 
 func init() {
+	proto.RegisterType((*IOTMessage)(nil), "telemetry.IOTMessage")
+	proto.RegisterType((*HelloMessage)(nil), "telemetry.HelloMessage")
 	proto.RegisterType((*TelemetryMessage)(nil), "telemetry.TelemetryMessage")
 }
 
 func init() { proto.RegisterFile("telemetry.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 121 bytes of a gzipped FileDescriptorProto
+	// 189 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2f, 0x49, 0xcd, 0x49,
 	0xcd, 0x4d, 0x2d, 0x29, 0xaa, 0xd4, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0xe2, 0x84, 0x0b, 0x28,
-	0x45, 0x70, 0x09, 0x84, 0xc0, 0x38, 0xbe, 0xa9, 0xc5, 0xc5, 0x89, 0xe9, 0xa9, 0x42, 0x42, 0x5c,
-	0x2c, 0x79, 0x89, 0xb9, 0xa9, 0x12, 0x8c, 0x0a, 0x8c, 0x1a, 0x9c, 0x41, 0x60, 0xb6, 0x90, 0x02,
-	0x17, 0x77, 0x49, 0x6a, 0x6e, 0x41, 0x6a, 0x51, 0x62, 0x49, 0x69, 0x51, 0xaa, 0x04, 0x93, 0x02,
-	0xa3, 0x06, 0x63, 0x10, 0xb2, 0x90, 0x10, 0x1f, 0x17, 0x53, 0x7e, 0x9e, 0x04, 0xb3, 0x02, 0xa3,
-	0x06, 0x47, 0x10, 0x53, 0x7e, 0x5e, 0x12, 0x1b, 0xd8, 0x2e, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff,
-	0xff, 0x7f, 0xaf, 0x41, 0xa3, 0x7e, 0x00, 0x00, 0x00,
+	0x75, 0x32, 0x72, 0x71, 0x79, 0xfa, 0x87, 0xf8, 0xa6, 0x16, 0x17, 0x27, 0xa6, 0xa7, 0x0a, 0xe9,
+	0x73, 0xb1, 0x66, 0xa4, 0xe6, 0xe4, 0xe4, 0x4b, 0x30, 0x2a, 0x30, 0x6a, 0x70, 0x1b, 0x89, 0xeb,
+	0x21, 0xb4, 0x7a, 0x80, 0xc4, 0xa1, 0xea, 0x3c, 0x18, 0x82, 0x20, 0xea, 0x84, 0xac, 0xb9, 0x10,
+	0x86, 0x49, 0x30, 0x81, 0x35, 0x49, 0x23, 0x69, 0x0a, 0x81, 0xb1, 0x10, 0x1a, 0x11, 0xea, 0x9d,
+	0x78, 0xb9, 0xb8, 0x33, 0xf3, 0x4b, 0xe2, 0x73, 0x21, 0x72, 0x4a, 0x7c, 0x5c, 0x3c, 0xc8, 0x96,
+	0x28, 0x45, 0x70, 0x09, 0xa0, 0xeb, 0x17, 0x12, 0xe2, 0x62, 0xc9, 0x4b, 0xcc, 0x4d, 0x05, 0xbb,
+	0x8f, 0x33, 0x08, 0xcc, 0x16, 0x52, 0xe0, 0xe2, 0x2e, 0x49, 0xcd, 0x2d, 0x48, 0x2d, 0x4a, 0x2c,
+	0x29, 0x2d, 0x4a, 0x05, 0xbb, 0x82, 0x31, 0x08, 0x59, 0x48, 0x88, 0x8f, 0x8b, 0x29, 0x3f, 0x4f,
+	0x82, 0x59, 0x81, 0x51, 0x83, 0x23, 0x88, 0x29, 0x3f, 0x2f, 0x89, 0x0d, 0x1c, 0x0e, 0xc6, 0x80,
+	0x00, 0x00, 0x00, 0xff, 0xff, 0x26, 0x80, 0x60, 0xd1, 0x1a, 0x01, 0x00, 0x00,
 }

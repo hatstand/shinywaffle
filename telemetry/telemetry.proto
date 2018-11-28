@@ -2,6 +2,15 @@ syntax = "proto3";
 
 package telemetry;
 
+message IOTMessage {
+  oneof iot_message {
+    HelloMessage hello = 1;
+    TelemetryMessage telemetry = 2;
+  }
+}
+
+message HelloMessage {}
+
 message TelemetryMessage {
   string name = 1;
   double temperature = 2;
