@@ -1,6 +1,7 @@
 module github.com/hatstand/shinywaffle
 
 require (
+	cloud.google.com/go v0.33.1
 	github.com/PuerkitoBio/goquery v1.4.1
 	github.com/andybalholm/cascadia v1.0.0 // indirect
 	github.com/blend/go-sdk v0.3.1 // indirect
@@ -11,6 +12,8 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/mock v1.1.1
 	github.com/golang/protobuf v1.2.0
+	github.com/google/martian v2.1.0+incompatible // indirect
+	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.5.1
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
@@ -21,6 +24,7 @@ require (
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a
 	github.com/wcharczuk/go-chart v2.0.1+incompatible
+	go.opencensus.io v0.18.0 // indirect
 	golang.org/x/image v0.0.0-20181025233408-2a2258ff36e9 // indirect
 	golang.org/x/net v0.0.0-20181029044818-c44066c5c816
 	golang.org/x/oauth2 v0.0.0-20181017192945-9dcd33a902f4
