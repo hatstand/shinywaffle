@@ -44,7 +44,7 @@ type Controller struct {
 }
 
 type StatusPublisher interface {
-	Publish(string, float64, bool)
+	Publish(string, float64, bool) error
 }
 
 func NewController(
@@ -140,7 +140,7 @@ func (c *Controller) tick() {
 					c.controller.TurnOff(r.GetAddress())
 				}
 				go func() {
-					c.statusPublisher.Publish(room.config.Name, room.config.LastTemp, false)
+					c.statusPublisher.Publish(room.config.Name, room.LastTemp, false)
 				}()
 			case HeatingState_ON:
 				for _, r := range room.config.Radiator {
@@ -148,7 +148,7 @@ func (c *Controller) tick() {
 					c.controller.TurnOn(r.GetAddress())
 				}
 				go func() {
-					c.statusPublisher.Publish(room.config.Name, room.config.LastTemp, true)
+					c.statusPublisher.Publish(room.config.Name, room.LastTemp, true)
 				}()
 			}
 		} else {
