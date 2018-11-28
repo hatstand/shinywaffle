@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package telemetry;
+
+message TelemetryMessage {
+  string name = 1;
+  double temperature = 2;
+  bool on = 3;
+}

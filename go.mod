@@ -6,6 +6,7 @@ require (
 	github.com/blend/go-sdk v0.3.1 // indirect
 	github.com/coreos/go-systemd v0.0.0-20181012123002-c6f51f82210d
 	github.com/dchest/uniuri v0.0.0-20160212164326-8902c56451e9
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/felixge/pidctrl v0.0.0-20160307080219-7b13bcae7243
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/mock v1.1.1
@@ -20,6 +21,7 @@ require (
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a
 	github.com/wcharczuk/go-chart v2.0.1+incompatible
+	github.com/yosssi/gmq v0.0.1
 	golang.org/x/image v0.0.0-20181025233408-2a2258ff36e9 // indirect
 	golang.org/x/net v0.0.0-20181029044818-c44066c5c816
 	golang.org/x/oauth2 v0.0.0-20181017192945-9dcd33a902f4

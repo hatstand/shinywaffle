@@ -40,9 +40,18 @@ type Controller struct {
 	controller      RadiatorController
 	lastUpdated     time.Time
 	calendarService *calendar.CalendarScheduleService
+	statusPublisher StatusPublisher
 }
 
-func NewController(path string, controller RadiatorController, calendarService *calendar.CalendarScheduleService) *Controller {
+type StatusPublisher interface {
+	Publish(string, float64, bool)
+}
+
+func NewController(
+	path string,
+	controller RadiatorController,
+	calendarService *calendar.CalendarScheduleService,
+	statusPublisher StatusPublisher) *Controller {
 	configText, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatalf("Failed to read config file: %s %v", path, err)
@@ -67,6 +76,7 @@ func NewController(path string, controller RadiatorController, calendarService *
 		Config:          m,
 		controller:      controller,
 		calendarService: calendarService,
+		statusPublisher: statusPublisher,
 	}
 }
 
@@ -129,11 +139,17 @@ func (c *Controller) tick() {
 					log.Printf("Turning off %s %v", room.config.Name, r.GetAddress())
 					c.controller.TurnOff(r.GetAddress())
 				}
+				go func() {
+					c.statusPublisher.Publish(room.config.Name, room.config.LastTemp, false)
+				}()
 			case HeatingState_ON:
 				for _, r := range room.config.Radiator {
 					log.Printf("Turning off %s %v", room.config.Name, r.GetAddress())
 					c.controller.TurnOn(r.GetAddress())
 				}
+				go func() {
+					c.statusPublisher.Publish(room.config.Name, room.config.LastTemp, true)
+				}()
 			}
 		} else {
 			log.Printf("No config for room: %s", t.Name)
