@@ -6,6 +6,7 @@ require (
 	github.com/andybalholm/cascadia v1.0.0 // indirect
 	github.com/blend/go-sdk v0.3.1 // indirect
 	github.com/coreos/go-systemd v0.0.0-20181012123002-c6f51f82210d
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/uniuri v0.0.0-20160212164326-8902c56451e9
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/felixge/pidctrl v0.0.0-20160307080219-7b13bcae7243

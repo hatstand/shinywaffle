@@ -5,6 +5,7 @@ import (
 	"log"
 	"runtime"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hatstand/shinywaffle/wirelesstag"
 )
 
@@ -19,8 +20,9 @@ func main() {
 		log.Fatalf("-secret and -client must be set")
 	}
 
-	_, err := wirelesstag.GetLogs(*clientId, *clientSecret)
+	v, err := wirelesstag.GetTags(*clientId, *clientSecret)
 	if err != nil {
 		log.Fatalf("Failed to fetch tags: %v", err)
 	}
+	spew.Dump(v)
 }
