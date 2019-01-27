@@ -36,7 +36,7 @@ func drawLabel(m draw.Image, data string, x, y int) {
 
 func drawTime(m draw.Image) {
 	t := time.Now().Format("15:04:05 02/01")
-	drawLabel(m, fmt.Sprintf("Updated: %s", t), 0, 104 - 8)
+	drawLabel(m, fmt.Sprintf("Updated: %s", t), 0, 104-8)
 }
 
 func threshold(r, g, b, a float32) (float32, float32, float32, float32) {
@@ -69,6 +69,31 @@ func getIcon(name string) (*oksvg.SvgIcon, error) {
 	return nil, fmt.Errorf("Failed to find icon: %s", name)
 }
 
+func conditionCodeToName(code int) string {
+	if code >= 200 && code < 300 {
+		return "thunderstorm"
+	}
+	if code >= 300 && code < 400 {
+		return "sprinkle"
+	}
+	if code >= 500 && code < 600 {
+		return "rain"
+	}
+	if code >= 600 && code < 700 {
+		return "snow"
+	}
+	if code >= 700 && code < 800 {
+		return "fog"
+	}
+	if code == 800 {
+		return "clear"
+	}
+	if code > 800 && code < 900 {
+		return "cloudy"
+	}
+	return "alien"
+}
+
 func drawWeather(m draw.Image) {
 	obs, err := weather.FetchCurrentWeather("London")
 	log.Printf("%+v", obs)
@@ -76,7 +101,18 @@ func drawWeather(m draw.Image) {
 		log.Fatal(err)
 	}
 
-	icon, err := getIcon("wi-cloud")
+	now := time.Now()
+	var iconName string
+	if now.Before(time.Time(obs.Location.Sunrise)) || now.After(time.Time(obs.Location.Sunset)) {
+		iconName = fmt.Sprintf("wi-night-%s", conditionCodeToName(obs.ConditionCode))
+	} else {
+		iconName = fmt.Sprintf("wi-day-%s", conditionCodeToName(obs.ConditionCode))
+		if iconName == "wi-day-clear" {
+			iconName = "wi-day-sunny"
+		}
+	}
+
+	icon, err := getIcon(iconName)
 	if err != nil {
 		log.Fatalf("Failed to read SVG: %v", err)
 	}
@@ -90,13 +126,13 @@ func drawWeather(m draw.Image) {
 	filtered := image.NewRGBA(g.Bounds(img.Bounds()))
 	g.Draw(filtered, img)
 	draw.Draw(
-			m,
-			image.Rect(212 - w, 0, 212, h),
-			filtered,
-			image.ZP,
-			draw.Over)
+		m,
+		image.Rect(212-w, 0, 212, h),
+		filtered,
+		image.ZP,
+		draw.Over)
 	temp := fmt.Sprintf("%.0fC", obs.CurrentTemp)
-	drawLabel(m, temp, 212 - w/2 - pixfont.MeasureString(temp) / 2, h)
+	drawLabel(m, temp, 212-w/2-pixfont.MeasureString(temp)/2, h)
 }
 
 func main() {

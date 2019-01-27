@@ -36,12 +36,13 @@ type Location struct {
 }
 
 type Observation struct {
-	CurrentTemp float32
-	MaxTemp     float32
-	MinTemp     float32
-	Icon        string
-	Humidity    int32
-	Location    Location
+	CurrentTemp   float32
+	MaxTemp       float32
+	MinTemp       float32
+	Icon          string
+	Humidity      int32
+	Location      Location
+	ConditionCode int
 }
 
 func kelvinToCelsius(k float32) float32 {
@@ -64,6 +65,7 @@ func FetchCurrentWeather(loc string) (*Observation, error) {
 	type Condition struct {
 		Description string `json:"description"`
 		Icon        string `json:"icon"`
+		ID          int
 	}
 
 	type Weather struct {
@@ -75,9 +77,9 @@ func FetchCurrentWeather(loc string) (*Observation, error) {
 	}
 
 	type Message struct {
-		C []Condition `json:"weather"`
-		W Weather     `json:"main"`
-		Location    Location `json:"sys"`
+		C        []Condition `json:"weather"`
+		W        Weather     `json:"main"`
+		Location Location    `json:"sys"`
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -94,11 +96,12 @@ func FetchCurrentWeather(loc string) (*Observation, error) {
 	log.Println(m)
 
 	return &Observation{
-		CurrentTemp: kelvinToCelsius(m.W.Temp),
-		Humidity:    m.W.Humidity,
-		MinTemp:     kelvinToCelsius(m.W.Min),
-		MaxTemp:     kelvinToCelsius(m.W.Max),
-		Icon:        fmt.Sprintf("https://openweathermap.org/img/w/%s.png", m.C[0].Icon),
-		Location:    m.Location,
+		CurrentTemp:   kelvinToCelsius(m.W.Temp),
+		Humidity:      m.W.Humidity,
+		MinTemp:       kelvinToCelsius(m.W.Min),
+		MaxTemp:       kelvinToCelsius(m.W.Max),
+		Icon:          fmt.Sprintf("https://openweathermap.org/img/w/%s.png", m.C[0].Icon),
+		Location:      m.Location,
+		ConditionCode: m.C[0].ID,
 	}, nil
 }
