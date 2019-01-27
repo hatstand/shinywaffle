@@ -46,6 +46,29 @@ func threshold(r, g, b, a float32) (float32, float32, float32, float32) {
 	return 1, 1, 1, 1
 }
 
+func getIcon(name string) (*oksvg.SvgIcon, error) {
+	iconsFile, err := zip.OpenReader("weather-icons-master.zip")
+	if err != nil {
+		log.Fatalf("Failed to open icons zip: %v", err)
+	}
+	defer iconsFile.Close()
+	for _, f := range iconsFile.File {
+		if f.FileHeader.Name == fmt.Sprintf("weather-icons-master/svg/%s.svg", name) {
+			rc, err := f.Open()
+			if err != nil {
+				return nil, err
+			}
+			defer rc.Close()
+			icon, err := oksvg.ReadIconStream(rc)
+			if err != nil {
+				return nil, err
+			}
+			return icon, nil
+		}
+	}
+	return nil, fmt.Errorf("Failed to find icon: %s", name)
+}
+
 func drawWeather(m draw.Image) {
 	obs, err := weather.FetchCurrentWeather("London")
 	log.Printf("%+v", obs)
@@ -53,42 +76,27 @@ func drawWeather(m draw.Image) {
 		log.Fatal(err)
 	}
 
-	iconsFile, err := zip.OpenReader("weather-icons-master.zip")
+	icon, err := getIcon("wi-cloud")
 	if err != nil {
-		log.Fatalf("Failed to open icons zip: %v", err)
+		log.Fatalf("Failed to read SVG: %v", err)
 	}
-	defer iconsFile.Close()
-	for _, f := range iconsFile.File {
-		if f.FileHeader.Name == "weather-icons-master/svg/wi-cloud.svg" {
-			rc, err := f.Open()
-			if err != nil {
-				log.Fatalf("Failed to read wi-cloud.svg: %v", err)
-			}
-			defer rc.Close()
-			icon, err := oksvg.ReadIconStream(rc)
-			if err != nil {
-				log.Fatalf("Failed to read SVG: %v", err)
-			}
 
-			w, h := int(icon.ViewBox.W), int(icon.ViewBox.H)
-			img := image.NewRGBA(image.Rect(0, 0, w, h))
-			scanner := rasterx.NewScannerGV(w, h, img, img.Bounds())
-			raster := rasterx.NewDasher(w, h, scanner)
-			icon.Draw(raster, 1.0)
-			g := gift.New(gift.ColorFunc(threshold), gift.Invert())
-			filtered := image.NewRGBA(g.Bounds(img.Bounds()))
-			g.Draw(filtered, img)
-			draw.Draw(
-					m,
-					image.Rect(212 - w, 0, 212, h),
-					filtered,
-					image.ZP,
-					draw.Over)
-			temp := fmt.Sprintf("%.0fC", obs.CurrentTemp)
-			drawLabel(m, temp, 212 - w/2 - pixfont.MeasureString(temp) / 2, h)
-			return
-		}
-	}
+	w, h := int(icon.ViewBox.W), int(icon.ViewBox.H)
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	scanner := rasterx.NewScannerGV(w, h, img, img.Bounds())
+	raster := rasterx.NewDasher(w, h, scanner)
+	icon.Draw(raster, 1.0)
+	g := gift.New(gift.ColorFunc(threshold), gift.Invert())
+	filtered := image.NewRGBA(g.Bounds(img.Bounds()))
+	g.Draw(filtered, img)
+	draw.Draw(
+			m,
+			image.Rect(212 - w, 0, 212, h),
+			filtered,
+			image.ZP,
+			draw.Over)
+	temp := fmt.Sprintf("%.0fC", obs.CurrentTemp)
+	drawLabel(m, temp, 212 - w/2 - pixfont.MeasureString(temp) / 2, h)
 }
 
 func main() {
