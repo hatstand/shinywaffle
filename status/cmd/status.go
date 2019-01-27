@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/disintegration/gift"
+	"github.com/hatstand/shinywaffle/weather"
 	"github.com/hatstand/shinywaffle/wirelesstag"
 	"github.com/pbnjay/pixfont"
 	"github.com/srwiley/oksvg"
@@ -46,6 +47,11 @@ func threshold(r, g, b, a float32) (float32, float32, float32, float32) {
 }
 
 func drawWeather(m draw.Image) {
+	obs, err := weather.FetchCurrentWeather("London")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	iconsFile, err := zip.OpenReader("weather-icons-master.zip")
 	if err != nil {
 		log.Fatalf("Failed to open icons zip: %v", err)
@@ -77,6 +83,8 @@ func drawWeather(m draw.Image) {
 					filtered,
 					image.ZP,
 					draw.Over)
+			temp := fmt.Sprintf("%.0fC", obs.CurrentTemp)
+			drawLabel(m, temp, 212 - w/2 - pixfont.MeasureString(temp) / 2, h)
 			return
 		}
 	}

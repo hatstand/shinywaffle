@@ -14,7 +14,7 @@ const (
 	baseUrl = "https://api.openweathermap.org/data/2.5/weather"
 )
 
-var apiKey = flag.String("api", "", "527c980a2885ec3ffc429e55e69c46")
+var apiKey = flag.String("api", "527c980a2885ec3ffc429e55e69c460a", "")
 
 type Observation struct {
 	CurrentTemp float32
