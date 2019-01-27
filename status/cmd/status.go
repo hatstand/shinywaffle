@@ -43,6 +43,7 @@ func drawWeather(m draw.Image) {
 	if err != nil {
 		log.Fatalf("Failed to open icons zip: %v", err)
 	}
+	defer iconsFile.Close()
 	for _, f := range iconsFile.File {
 		if f.FileHeader.Name == "weather-icons-master/svg/wi-cloud.svg" {
 			rc, err := f.Open()
@@ -60,7 +61,7 @@ func drawWeather(m draw.Image) {
 			scanner := rasterx.NewScannerGV(w, h, img, img.Bounds())
 			raster := rasterx.NewDasher(w, h, scanner)
 			icon.Draw(raster, 1.0)
-			draw.Draw(imaging.Invert(m), image.Rect(212 - w, 0, 212, h), img, image.ZP, draw.Over)
+			draw.Draw(imaging.Invert(m), image.Rect(212 - w, 104 - h, 212, 104), img, image.ZP, draw.Over)
 			return
 		}
 	}
