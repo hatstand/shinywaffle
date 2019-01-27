@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"flag"
 	"fmt"
 	"image"
@@ -10,11 +11,15 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sort"
 	"sync"
 	"time"
 
+	"github.com/disintegration/imaging"
 	"github.com/hatstand/shinywaffle/wirelesstag"
 	"github.com/pbnjay/pixfont"
+	"github.com/srwiley/oksvg"
+	"github.com/srwiley/rasterx"
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/spi/spireg"
@@ -26,6 +31,39 @@ var path = flag.String("template", "template.png", "Path to template image")
 
 func drawLabel(m draw.Image, data string, x, y int) {
 	pixfont.DrawString(m, x, y, data, color.White)
+}
+
+func drawTime(m draw.Image) {
+	t := time.Now().Format("15:04:05 02/01")
+	drawLabel(m, fmt.Sprintf("Updated: %s", t), 0, 104 - 8)
+}
+
+func drawWeather(m draw.Image) {
+	iconsFile, err := zip.OpenReader("weather-icons-master.zip")
+	if err != nil {
+		log.Fatalf("Failed to open icons zip: %v", err)
+	}
+	for _, f := range iconsFile.File {
+		if f.FileHeader.Name == "weather-icons-master/svg/wi-cloud.svg" {
+			rc, err := f.Open()
+			if err != nil {
+				log.Fatalf("Failed to read wi-cloud.svg: %v", err)
+			}
+			defer rc.Close()
+			icon, err := oksvg.ReadIconStream(rc)
+			if err != nil {
+				log.Fatalf("Failed to read SVG: %v", err)
+			}
+
+			w, h := int(icon.ViewBox.W), int(icon.ViewBox.H)
+			img := image.NewRGBA(image.Rect(0, 0, w, h))
+			scanner := rasterx.NewScannerGV(w, h, img, img.Bounds())
+			raster := rasterx.NewDasher(w, h, scanner)
+			icon.Draw(raster, 1.0)
+			draw.Draw(imaging.Invert(m), image.Rect(212 - w, 0, 212, h), img, image.ZP, draw.Over)
+			return
+		}
+	}
 }
 
 func main() {
@@ -83,11 +121,14 @@ func main() {
 				if err != nil {
 					log.Fatalf("Failed to fetch tags: %v", err)
 				}
+				sort.Slice(tags, func(i, j int) bool { return tags[i].Name < tags[j].Name })
 				for i, v := range tags {
 					s := fmt.Sprintf("%s: %.1f°C", v.Name, v.Temperature)
 					log.Println(s)
-					drawLabel(m, s, 32, 8*(i+1))
+					drawLabel(m, s, 0, 16*(i+1))
 				}
+				drawTime(m)
+				drawWeather(m)
 
 				dev.Draw(m.Bounds(), m, image.Point{0, 0})
 			}()

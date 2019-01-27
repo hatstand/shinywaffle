@@ -9,6 +9,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/uniuri v0.0.0-20160212164326-8902c56451e9
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/disintegration/imaging v1.5.0 // indirect
 	github.com/felixge/pidctrl v0.0.0-20160307080219-7b13bcae7243
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/mock v1.1.1
@@ -25,6 +26,8 @@ require (
 	github.com/sigurn/utils v0.0.0-20151230205143-f19e41f79f8f // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a
+	github.com/srwiley/oksvg v0.0.0-20190105194046-ccbc7673cdf3 // indirect
+	github.com/srwiley/rasterx v0.0.0-20181219215540-696f7edb7a7e // indirect
 	github.com/wcharczuk/go-chart v2.0.1+incompatible
 	go.opencensus.io v0.18.0 // indirect
 	golang.org/x/image v0.0.0-20181025233408-2a2258ff36e9
