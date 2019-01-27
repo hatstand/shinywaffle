@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/disintegration/gift"
 	"github.com/disintegration/imaging"
 	"github.com/hatstand/shinywaffle/wirelesstag"
 	"github.com/pbnjay/pixfont"
@@ -61,7 +62,15 @@ func drawWeather(m draw.Image) {
 			scanner := rasterx.NewScannerGV(w, h, img, img.Bounds())
 			raster := rasterx.NewDasher(w, h, scanner)
 			icon.Draw(raster, 1.0)
-			draw.Draw(imaging.Invert(m), image.Rect(212 - w, 104 - h, 212, 104), img, image.ZP, draw.Over)
+			g := gift.New(gift.Threshold(50))
+			filtered := image.NewRGBA(g.Bounds(img.Bounds()))
+			g.Draw(filtered, img)
+			draw.Draw(
+					m,
+					image.Rect(212 - w, 0, 212, h),
+					imaging.Invert(filtered),
+					image.ZP,
+					draw.Over)
 			return
 		}
 	}
@@ -106,35 +115,49 @@ func main() {
 
 	var mu sync.Mutex
 
+	go drawStatus(mu, img, dev)
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			go func() {
-				mu.Lock()
-				defer mu.Unlock()
-				b := img.Bounds()
-				m := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
-				draw.Draw(m, m.Bounds(), img, b.Min, draw.Src)
-
-				tags, err := wirelesstag.GetTags("foo", "bar")
-				if err != nil {
-					log.Fatalf("Failed to fetch tags: %v", err)
-				}
-				sort.Slice(tags, func(i, j int) bool { return tags[i].Name < tags[j].Name })
-				for i, v := range tags {
-					s := fmt.Sprintf("%s: %.1f°C", v.Name, v.Temperature)
-					log.Println(s)
-					drawLabel(m, s, 0, 16*(i+1))
-				}
-				drawTime(m)
-				drawWeather(m)
-
-				dev.Draw(m.Bounds(), m, image.Point{0, 0})
-			}()
+			go drawStatus(mu, img, dev)
 		case <-c:
 			return
 		}
 	}
+}
+
+func drawStatus(mu sync.Mutex, img image.Image, dev *inky.Dev) {
+	mu.Lock()
+	defer mu.Unlock()
+	b := img.Bounds()
+	m := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+	draw.Draw(m, m.Bounds(), img, b.Min, draw.Src)
+
+	tags, err := wirelesstag.GetTags("foo", "bar")
+	if err != nil {
+		log.Fatalf("Failed to fetch tags: %v", err)
+	}
+	sort.Slice(tags, func(i, j int) bool { return tags[i].Name < tags[j].Name })
+	for i, v := range tags {
+		s := fmt.Sprintf("%s: %.1f°C", v.Name, v.Temperature)
+		log.Println(s)
+		drawLabel(m, s, 0, 16*(i+1))
+	}
+	drawTime(m)
+	drawWeather(m)
+
+	debug, err := os.Create("debug.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := png.Encode(debug, m); err != nil {
+		log.Fatal(err)
+	}
+	if err := debug.Close(); err != nil {
+		log.Fatal(err)
+	}
+	dev.Draw(m.Bounds(), m, image.Point{0, 0})
 }

@@ -9,6 +9,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/uniuri v0.0.0-20160212164326-8902c56451e9
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/disintegration/gift v1.2.0 // indirect
 	github.com/disintegration/imaging v1.5.0 // indirect
 	github.com/felixge/pidctrl v0.0.0-20160307080219-7b13bcae7243
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
