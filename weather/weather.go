@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
 )
 
 const (
@@ -16,12 +18,30 @@ const (
 
 var apiKey = flag.String("api", "527c980a2885ec3ffc429e55e69c460a", "")
 
+type EpochTime time.Time
+
+func (et *EpochTime) UnmarshalJSON(data []byte) error {
+	q, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return err
+	}
+	*(*time.Time)(et) = time.Unix(q, 0)
+	return nil
+}
+
+type Location struct {
+	CountryCode string `json:"country"`
+	Sunrise     EpochTime
+	Sunset      EpochTime
+}
+
 type Observation struct {
 	CurrentTemp float32
 	MaxTemp     float32
 	MinTemp     float32
 	Icon        string
 	Humidity    int32
+	Location    Location
 }
 
 func kelvinToCelsius(k float32) float32 {
@@ -57,6 +77,7 @@ func FetchCurrentWeather(loc string) (*Observation, error) {
 	type Message struct {
 		C []Condition `json:"weather"`
 		W Weather     `json:"main"`
+		Location    Location `json:"sys"`
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -78,5 +99,6 @@ func FetchCurrentWeather(loc string) (*Observation, error) {
 		MinTemp:     kelvinToCelsius(m.W.Min),
 		MaxTemp:     kelvinToCelsius(m.W.Max),
 		Icon:        fmt.Sprintf("https://openweathermap.org/img/w/%s.png", m.C[0].Icon),
+		Location:    m.Location,
 	}, nil
 }

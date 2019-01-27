@@ -48,6 +48,7 @@ func threshold(r, g, b, a float32) (float32, float32, float32, float32) {
 
 func drawWeather(m draw.Image) {
 	obs, err := weather.FetchCurrentWeather("London")
+	log.Printf("%+v", obs)
 	if err != nil {
 		log.Fatal(err)
 	}
