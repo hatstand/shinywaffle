@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/disintegration/gift"
-	"github.com/disintegration/imaging"
 	"github.com/hatstand/shinywaffle/wirelesstag"
 	"github.com/pbnjay/pixfont"
 	"github.com/srwiley/oksvg"
@@ -37,6 +36,13 @@ func drawLabel(m draw.Image, data string, x, y int) {
 func drawTime(m draw.Image) {
 	t := time.Now().Format("15:04:05 02/01")
 	drawLabel(m, fmt.Sprintf("Updated: %s", t), 0, 104 - 8)
+}
+
+func threshold(r, g, b, a float32) (float32, float32, float32, float32) {
+	if r == 0 && g == 0 && b == 0 && a != 0 {
+		return 0, 0, 0, 1
+	}
+	return 1, 1, 1, 1
 }
 
 func drawWeather(m draw.Image) {
@@ -62,13 +68,13 @@ func drawWeather(m draw.Image) {
 			scanner := rasterx.NewScannerGV(w, h, img, img.Bounds())
 			raster := rasterx.NewDasher(w, h, scanner)
 			icon.Draw(raster, 1.0)
-			g := gift.New(gift.Threshold(50))
+			g := gift.New(gift.ColorFunc(threshold), gift.Invert())
 			filtered := image.NewRGBA(g.Bounds(img.Bounds()))
 			g.Draw(filtered, img)
 			draw.Draw(
 					m,
 					image.Rect(212 - w, 0, 212, h),
-					imaging.Invert(filtered),
+					filtered,
 					image.ZP,
 					draw.Over)
 			return
