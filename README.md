@@ -25,7 +25,7 @@ From here I played around with [GNURadio](https://www.gnuradio.org/) until I man
 
 ### Decoding the packet
 
-I struggled to get GNURadio to fully decode the packet so I [opened the waveform in Audible](https://raw.githubusercontent.com/hatstand/shinywaffle/master/data/winter-bedroom-waveform.png) and tried to decode it by hand.
+I struggled to get GNURadio to fully decode the packet so I [opened the waveform in Audacity](https://raw.githubusercontent.com/hatstand/shinywaffle/master/data/winter-bedroom-waveform.png) and tried to decode it by hand.
 It was tedious work but it was fairly easy to [separate the waveform into the different parts of the packet](https://raw.githubusercontent.com/hatstand/shinywaffle/master/data/sdr-notes.png) [as documented by TI](http://www.ti.com/lit/ds/symlink/cc1101.pdf):
 
   * Preamble: 16 bits alternating high/low
