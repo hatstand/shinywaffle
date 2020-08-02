@@ -227,6 +227,9 @@ func GetLogs(clientId string, clientSecret string) (map[string]map[string][]floa
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read response: %v", err)
+	}
 	resp.Body.Close()
 
 	var logs StatsResponse
