@@ -189,6 +189,9 @@ func GetTags(clientId string, clientSecret string) ([]Tag, error) {
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read response: %v", err)
+	}
 	resp.Body.Close()
 
 	var tags TagList
