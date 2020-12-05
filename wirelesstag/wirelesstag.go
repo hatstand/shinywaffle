@@ -109,6 +109,14 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 	return t, err
 }
 
+func tokenFromEnv() (*oauth2.Token, error) {
+	t := oauth2.Token{}
+	if err := json.Unmarshal([]byte(os.Getenv("WIRELESS_TAG_CREDENTIALS")), &t); err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 func tokenFromWeb(ctx context.Context, clientId string, clientSecret string) (token *oauth2.Token, err error) {
 	state := uniuri.New()
 	mux := http.NewServeMux()
@@ -171,9 +179,12 @@ func getClient(ctx context.Context, clientId string, clientSecret string) *http.
 	}
 	token, err := tokenFromFile(cacheFile)
 	if err != nil {
-		token, err = tokenFromWeb(ctx, clientId, clientSecret)
+		token, err = tokenFromEnv()
 		if err != nil {
-			log.Fatalf("Unable to get token from web: %v", err)
+			token, err = tokenFromWeb(ctx, clientId, clientSecret)
+			if err != nil {
+				log.Fatalf("Unable to get token from web: %v", err)
+			}
 		}
 		saveToken(cacheFile, token)
 	}
