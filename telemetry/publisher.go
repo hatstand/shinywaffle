@@ -40,7 +40,7 @@ func (p *Publisher) Publish(name string, temp float64, on bool) error {
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to serialise message: %v")
+		return fmt.Errorf("failed to serialise message: %v", err)
 	}
 	return p.send(data)
 }
