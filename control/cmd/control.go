@@ -88,6 +88,9 @@ func (s *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 
+	fmt.Println("Hello, World!")
+	fmt.Fprintf(os.Stderr, "Hello, World! (stderr)\n")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
