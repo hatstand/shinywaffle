@@ -9,9 +9,9 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -58,13 +58,10 @@ func (p *Publisher) Hello() error {
 }
 
 func NewPublisher() *Publisher {
-	keyData, err := ioutil.ReadFile(*iotKey)
-	if err != nil {
-		log.Fatalf("Failed to load IoT private key: %v", err)
-	}
+	keyData := []byte(os.Getenv("IOT_KEY"))
 	pemBlock, _ := pem.Decode(keyData)
 	if pemBlock == nil || pemBlock.Type != "PRIVATE KEY" {
-		log.Fatalf("Failed to parse PEM: %v", err)
+		log.Fatalf(`Failed to parse PEM: ¯\_(ツ)_/¯`)
 	}
 	key, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
 	if err != nil {

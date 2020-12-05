@@ -11,6 +11,6 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /go/src/app/control/cmd/cmd /server
 COPY control/cmd/config.textproto /
 
-CMD /server -config /config.textproto -port 80
+CMD /server -config /config.textproto -port 80 -logtostderr
 
 EXPOSE 80 8082

@@ -3,7 +3,6 @@ package calendar
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -79,13 +78,8 @@ type CalendarScheduleService struct {
 }
 
 func NewCalendarScheduleService() (*CalendarScheduleService, error) {
-	b, err := ioutil.ReadFile("credentials.json")
-	if err != nil {
-		return nil, fmt.Errorf("Unable to read client secret file: %v", err)
-	}
-
 	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, calendar.CalendarReadonlyScope)
+	config, err := google.ConfigFromJSON([]byte(os.Getenv("GOOGLE_CREDENTIALS")), calendar.CalendarReadonlyScope)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse client secret file to config: %v", err)
 	}
