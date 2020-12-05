@@ -20,3 +20,9 @@ jobs:
         with:
           push: false
           tags: hatstand/shinywaffle:latest
+
+      - name: Build Balena image
+        uses: bekriebel/balena-cli-action@v1.0.1
+        with:
+          balena_api_token: ${{ secrets.BALENA_API_KEY }}
+          balena_command: build . --application heating
