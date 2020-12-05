@@ -153,7 +153,11 @@ func main() {
 	reset := gpioreg.ByName("27")
 	busy := gpioreg.ByName("17")
 
-	dev, err := inky.New(port, dc, reset, busy, inky.Red)
+	dev, err := inky.New(port, dc, reset, busy, &inky.Opts{
+		Model:       inky.PHAT,
+		ModelColor:  inky.Red,
+		BorderColor: inky.Black,
+	})
 	if err != nil {
 		log.Fatalf("Failed to open inky: %v", err)
 	}

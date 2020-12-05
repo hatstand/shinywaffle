@@ -96,7 +96,7 @@ func main() {
 				return
 			}
 		default:
-			log.Print("Skipping unrecognised message type: %v", x)
+			log.Printf("Skipping unrecognised message type: %v", x)
 		}
 	})
 
