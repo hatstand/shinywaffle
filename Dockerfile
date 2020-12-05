@@ -5,6 +5,6 @@ COPY . .
 
 RUN cd control/cmd && go build
 
-CMD control/cmd/cmd -config control/cmd/config.textproto
+CMD control/cmd/cmd -config control/cmd/config.textproto -port 80
 
-EXPOSE 8081 8082
+EXPOSE 80 8082
