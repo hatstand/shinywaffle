@@ -5,9 +5,8 @@ COPY . .
 
 RUN cd control/cmd && GOARCH=arm GOARM=6 go build -ldflags="-w -s"
 
-FROM scratch
+FROM balenalib/raspberry-pi-alpine:3.12-run
 
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /go/src/app/control/cmd/cmd /server
 COPY control/cmd/config.textproto /
 COPY control/cmd/*.html /
