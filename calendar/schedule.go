@@ -20,12 +20,15 @@ func getClient(config *oauth2.Config) (*http.Client, error) {
 	tokFile := "token.json"
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
-		tok, err = getTokenFromWeb(config)
+		tok, err = tokenFromEnv()
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get token from web: %v", err)
-		}
-		if err = saveToken(tokFile, tok); err != nil {
-			return nil, fmt.Errorf("Failed to save token: %v", err)
+			tok, err = getTokenFromWeb(config)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get token from web: %v", err)
+			}
+			if err = saveToken(tokFile, tok); err != nil {
+				return nil, fmt.Errorf("Failed to save token: %v", err)
+			}
 		}
 	}
 	return config.Client(context.Background(), tok), nil
@@ -47,6 +50,14 @@ func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 		return nil, fmt.Errorf("Unable to retrieve token from web: %v", err)
 	}
 	return tok, nil
+}
+
+func tokenFromEnv() (*oauth2.Token, error) {
+	tok := oauth2.Token{}
+	if err := json.Unmarshal([]byte(os.Getenv("CALENDAR_TOKENS")), &tok); err != nil {
+		return nil, err
+	}
+	return &tok, nil
 }
 
 // Retrieves a token from a local file.
