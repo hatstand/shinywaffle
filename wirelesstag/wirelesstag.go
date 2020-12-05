@@ -172,28 +172,17 @@ func tokenFromWeb(ctx context.Context, clientId string, clientSecret string) (to
 	return token, nil
 }
 
-func getClient(ctx context.Context, clientId string, clientSecret string) *http.Client {
-	cacheFile, err := tokenCacheFile()
+func getClient(ctx context.Context) *http.Client {
+	token, err := tokenFromEnv()
 	if err != nil {
-		log.Fatalf("Unable to get token cache file: %v", err)
-	}
-	token, err := tokenFromFile(cacheFile)
-	if err != nil {
-		token, err = tokenFromEnv()
-		if err != nil {
-			token, err = tokenFromWeb(ctx, clientId, clientSecret)
-			if err != nil {
-				log.Fatalf("Unable to get token from web: %v", err)
-			}
-		}
-		saveToken(cacheFile, token)
+		log.Fatalf("Unable to get wirelesstag token from env: %v", err)
 	}
 	return oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
 }
 
-func GetTags(clientId string, clientSecret string) ([]Tag, error) {
+func GetTags() ([]Tag, error) {
 	ctx := context.Background()
-	client := getClient(ctx, clientId, clientSecret)
+	client := getClient(ctx)
 	resp, err := client.Post("https://www.mytaglist.com/ethClient.asmx/GetTagListCached", "application/json", bytes.NewBuffer([]byte(`{}`)))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to fetch stuff: %v", err)
@@ -215,9 +204,9 @@ func GetTags(clientId string, clientSecret string) ([]Tag, error) {
 
 func GetLogs(clientId string, clientSecret string) (map[string]map[string][]float64, error) {
 	ctx := context.Background()
-	client := getClient(ctx, clientId, clientSecret)
+	client := getClient(ctx)
 
-	tags, err := GetTags(clientId, clientSecret)
+	tags, err := GetTags()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to fetch tags: %v", err)
 	}

@@ -199,7 +199,7 @@ func drawStatus(mu sync.Mutex, img image.Image, dev *inky.Dev) {
 	m := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 	draw.Draw(m, m.Bounds(), img, b.Min, draw.Src)
 
-	tags, err := wirelesstag.GetTags("foo", "bar")
+	tags, err := wirelesstag.GetTags()
 	if err != nil {
 		log.Fatalf("Failed to fetch tags: %v", err)
 	}

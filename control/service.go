@@ -122,7 +122,7 @@ func (c *Controller) GetNextState(room *Room) HeatingState {
 }
 
 func (c *Controller) tick() {
-	tags, err := wirelesstag.GetTags(*client, *secret)
+	tags, err := wirelesstag.GetTags()
 	if err != nil {
 		log.Printf("Failed to fetch tag data: %v", err)
 		return
