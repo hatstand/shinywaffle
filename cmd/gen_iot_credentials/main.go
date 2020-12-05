@@ -40,9 +40,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	out, err := json.Marshal(jwk.Set{
-		Keys: []jwk.Key{jKey},
-	})
+	out, err := json.Marshal(jKey)
 	if err != nil {
 		log.Fatal(err)
 	}
