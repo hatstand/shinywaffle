@@ -29,6 +29,7 @@ jobs:
 
       - name: Deploy
         uses: bekriebel/balena-cli-action@v1.0.1
+        if: github.ref == 'refs/heads/master'
         with:
           balena_api_token: ${{ secrets.BALENA_API_KEY }}
           balena_command: deploy heating --build --source .
