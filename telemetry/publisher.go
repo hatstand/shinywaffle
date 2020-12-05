@@ -4,15 +4,15 @@ package telemetry
 import (
 	"bytes"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/lestrrat/go-jwx/jwk"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/proto"
@@ -58,18 +58,20 @@ func (p *Publisher) Hello() error {
 }
 
 func NewPublisher() *Publisher {
-	keyData := []byte(os.Getenv("IOT_KEY"))
-	pemBlock, _ := pem.Decode(keyData)
-	if pemBlock == nil || pemBlock.Type != "PRIVATE KEY" {
-		log.Fatalf(`Failed to parse PEM: ¯\_(ツ)_/¯`)
-	}
-	key, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
+	keys, err := jwk.ParseString(os.Getenv("IOT_KEY"))
 	if err != nil {
-		log.Fatalf("Failed to parse RSA key: %v", err)
+		log.Fatalf("Failed to parse JWK: %v", err)
+	}
+	if len(keys.Keys) != 1 {
+		log.Fatalf("Wrong number of keys in JWK: %d", len(keys.Keys))
+	}
+	key, err := keys.Keys[0].Materialize()
+	if err != nil {
+		log.Fatalf("Failed to materialize key: %v", err)
 	}
 	rsaKey, ok := key.(*rsa.PrivateKey)
 	if !ok {
-		log.Fatalf("Failed to extract RSA key")
+		log.Fatalf("Failed to convert RSA key")
 	}
 
 	return &Publisher{

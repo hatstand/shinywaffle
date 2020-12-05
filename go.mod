@@ -20,6 +20,8 @@ require (
 	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.5.1
 	github.com/kidoman/embd v0.0.0-20170508013040-d3d8c0c5c68d
+	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
+	github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pbnjay/pixfont v0.0.0-20190124142447-a842e97a7f59
 	github.com/sigurn/crc8 v0.0.0-20160107002456-e55481d6f45c
@@ -27,6 +29,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/srwiley/oksvg v0.0.0-20190105194046-ccbc7673cdf3
 	github.com/srwiley/rasterx v0.0.0-20181219215540-696f7edb7a7e
+	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/wcharczuk/go-chart v2.0.1+incompatible
 	go.opencensus.io v0.18.0 // indirect
 	golang.org/x/image v0.0.0-20181025233408-2a2258ff36e9 // indirect
