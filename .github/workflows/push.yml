@@ -14,3 +14,9 @@ jobs:
 
       - name: Go test
         run: go test ./...
+
+      - name: Build push Docker image
+        uses: docker/build-push-action@v2.2.0
+        with:
+          push: false
+          tags: hatstand/shinywaffle:latest
