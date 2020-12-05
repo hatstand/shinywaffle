@@ -10,6 +10,7 @@ FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /go/src/app/control/cmd/cmd /server
 COPY control/cmd/config.textproto /
+COPY control/cmd/*.html /
 
 CMD /server -config /config.textproto -port 80 -logtostderr
 
