@@ -183,7 +183,7 @@ func getClient(ctx context.Context) *http.Client {
 func GetTags() ([]Tag, error) {
 	ctx := context.Background()
 	client := getClient(ctx)
-	resp, err := client.Post("https://www.mytaglist.com/ethClient.asmx/GetTagListCached", "application/json", bytes.NewBuffer([]byte(`{}`)))
+	resp, err := client.Post("https://www.mytaglist.com/ethClient.asmx/GetTagList", "application/json", bytes.NewBuffer([]byte(`{}`)))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to fetch stuff: %v", err)
 	}
