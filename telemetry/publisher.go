@@ -18,7 +18,6 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-var iotKey = flag.String("iot-key", "rsa-private.pem", "Path to RSA private key file for Cloud IoT")
 var projectID = flag.String("project-id", "hodoor-211bb", "Project ID for Cloud IoT")
 
 type WrapperMessage struct {
