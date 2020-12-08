@@ -416,11 +416,15 @@ func (c *CC1101) Send(packet []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	doneCh := make(chan interface{})
-	go func() {
-		if err := c.gdo2.Watch(embd.EdgeFalling, func(dp embd.DigitalPin) {
-			doneCh <- nil
-		}); err != nil {
-			log.Printf("Error waiting for packet send: %v", err)
+	if err := c.gdo2.Watch(embd.EdgeFalling, func(dp embd.DigitalPin) {
+		doneCh <- nil
+	}); err != nil {
+		return fmt.Errorf("Error waiting for packet send: %w", err)
+	}
+	// Watch should always be unregistered.
+	defer func() {
+		if err := c.gdo2.StopWatching(); err != nil {
+			log.Printf("failed to stop watching GDO2: %v", err)
 		}
 	}()
 
@@ -429,10 +433,6 @@ func (c *CC1101) Send(packet []byte) error {
 		case <-doneCh:
 			return nil
 		case <-ctx.Done():
-			log.Printf("Timing out packet send")
-			if err := c.gdo2.StopWatching(); err != nil {
-				return fmt.Errorf("failed to stop watching packet send: %w", err)
-			}
 			return fmt.Errorf("Timed out waiting for packet send")
 		}
 	}
