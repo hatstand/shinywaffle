@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/hatstand/shinywaffle/mocks"
+	"github.com/kidoman/embd"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -90,10 +91,12 @@ func TestSendPacket(t *testing.T) {
 			bus.EXPECT().TransferAndReceiveData([]byte{TXFIFO | WRITE_BURST, 0x42, 0x43, 0x44}),
 			// Switch to send mode.
 			bus.EXPECT().TransferAndReceiveData([]byte{STX, 0x00}),
-			// Wait for sync word to transmit (rising edge on gdo2).
-			gdo2.EXPECT().Read().Return(1, nil),
 			// Wait for packet data to transmit (falling edge on gdo2).
-			gdo2.EXPECT().Read().Return(0, nil),
+			gdo2.EXPECT().Watch(embd.EdgeFalling, gomock.Any()).Do(
+				func(edge embd.Edge, cb func(dp embd.DigitalPin)) {
+					cb(gdo2)
+				},
+			),
 			// Switch back to idle mode when finished.
 			bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}),
 			// Flush the TX buffer.
