@@ -1,6 +1,7 @@
 package shinywaffle
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -401,12 +402,10 @@ func (c *CC1101) Send(packet []byte) error {
 	if len(packet) > 60 {
 		return fmt.Errorf("Packet too long: %d", len(packet))
 	}
-	err := c.WriteSingleByte(TXFIFO, byte(len(packet)))
-	if err != nil {
+	if err := c.WriteSingleByte(TXFIFO, byte(len(packet))); err != nil {
 		return err
 	}
-	err = c.WriteBurst(TXFIFO, packet)
-	if err != nil {
+	if err := c.WriteBurst(TXFIFO, packet); err != nil {
 		return err
 	}
 
@@ -414,24 +413,27 @@ func (c *CC1101) Send(packet []byte) error {
 	defer c.Strobe(SFTX)
 	defer c.Strobe(SIDLE)
 
-	for {
-		sync, err := c.gdo2.Read()
-		if err != nil {
-			return err
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	doneCh := make(chan interface{})
+	go func() {
+		if err := c.gdo2.Watch(embd.EdgeFalling, func(dp embd.DigitalPin) {
+			doneCh <- nil
+		}); err != nil {
+			log.Printf("Error waiting for packet send: %v", err)
 		}
-		if sync > 0 {
-			break
-		}
-	}
+	}()
 
 	for {
-		sync, err := c.gdo2.Read()
-		if err != nil {
-			return err
-		}
-		if sync == 0 {
-			break
+		select {
+		case <-doneCh:
+			return nil
+		case <-ctx.Done():
+			log.Printf("Timing out packet send")
+			if err := c.gdo2.StopWatching(); err != nil {
+				return fmt.Errorf("failed to stop watching packet send: %w", err)
+			}
+			return fmt.Errorf("Timed out waiting for packet send")
 		}
 	}
-	return nil
 }
