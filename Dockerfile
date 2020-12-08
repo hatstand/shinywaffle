@@ -14,3 +14,5 @@ COPY control/cmd/*.html /
 CMD /server -config /config.textproto -port 80 -logtostderr
 
 EXPOSE 80 8082
+
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 CMD curl http://localhost:80/healthz
