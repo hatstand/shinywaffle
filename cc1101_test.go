@@ -94,9 +94,10 @@ func TestSendPacket(t *testing.T) {
 			// Wait for packet data to transmit (falling edge on gdo2).
 			gdo2.EXPECT().Watch(embd.EdgeFalling, gomock.Any()).Do(
 				func(edge embd.Edge, cb func(dp embd.DigitalPin)) {
-					cb(gdo2)
+					go cb(gdo2)
 				},
 			),
+			gdo2.EXPECT().StopWatching(),
 			// Switch back to idle mode when finished.
 			bus.EXPECT().TransferAndReceiveData([]byte{SIDLE, 0x00}),
 			// Flush the TX buffer.
