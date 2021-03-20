@@ -8,6 +8,7 @@ services:
     privileged: true
     expose:
       - "80"
+      - "2112"
   agent:
     build:
       context: .

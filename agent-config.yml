@@ -18,7 +18,7 @@ prometheus:
         - job_name: integrations/go
           static_configs:
             - targets:
-                - localhost:8080
+                - control:2112
   global:
     scrape_interval: 15s
   wal_directory: /tmp/grafana-agent-wal
