@@ -1,0 +1,19 @@
+version: '2'
+services:
+  control:
+    build:
+      context: .
+      dockerfile: ./control/Dockerfile
+    restart: always
+    privileged: true
+    expose:
+      - "80"
+  agent:
+    build:
+      context: .
+      dockerfile: ./agent/Dockerfile
+    restart: always
+    volumes:
+      - 'grafana-data:/var/lib/grafana'
+volumes:
+  grafana-data:
