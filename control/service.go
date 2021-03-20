@@ -13,10 +13,33 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hatstand/shinywaffle/calendar"
 	"github.com/hatstand/shinywaffle/wirelesstag"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var client = flag.String("client", "", "OAuth client id")
 var secret = flag.String("secret", "", "OAuth client secret")
+
+var (
+	temperatureGauges = map[string]prometheus.Gauge{
+		"Living Room": promauto.NewGauge(prometheus.GaugeOpts{
+			Namespace: "temperature",
+			Name:      "living_room",
+		}),
+		"Study": promauto.NewGauge(prometheus.GaugeOpts{
+			Namespace: "temperature",
+			Name:      "study",
+		}),
+		"Bedroom": promauto.NewGauge(prometheus.GaugeOpts{
+			Namespace: "temperature",
+			Name:      "bedroom",
+		}),
+		"Hall": promauto.NewGauge(prometheus.GaugeOpts{
+			Namespace: "temperature",
+			Name:      "hall",
+		}),
+	}
+)
 
 const (
 	kP = 1
@@ -130,6 +153,9 @@ func (c *Controller) tick() {
 	c.lastUpdated = time.Now()
 	for _, t := range tags {
 		room := c.Config[t.Name]
+		if g, ok := temperatureGauges[t.Name]; ok {
+			g.Set(t.Temperature)
+		}
 		room.LastTemp = t.Temperature
 		if room != nil {
 			nextState := c.GetNextState(room)
