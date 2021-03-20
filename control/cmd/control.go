@@ -21,6 +21,7 @@ import (
 	"github.com/hatstand/shinywaffle/control"
 	"github.com/hatstand/shinywaffle/telemetry"
 	"github.com/hatstand/shinywaffle/weather"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 )
 
@@ -90,6 +91,18 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	monitoringMux := http.NewServeMux()
+	monitoringMux.Handle("/metrics", promhttp.Handler())
+	monitoringSrv := &http.Server{
+		Addr:    ":2112",
+		Handler: monitoringMux,
+	}
+	go func() {
+		if err := monitoringSrv.ListenAndServe(); err != nil {
+			log.Fatalf("failed to run monitoring service: %v", err)
+		}
+	}()
 
 	telemetry := telemetry.NewPublisher()
 	err := telemetry.Hello()
