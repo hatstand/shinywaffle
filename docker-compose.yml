@@ -26,3 +26,4 @@ services:
       - 'tailscale-data:/var/lib'
 volumes:
   grafana-data:
+  tailscale-data:
