@@ -19,10 +19,10 @@ services:
   tailscale:
     image: tailscale/tailscale
     restart: always
+    environment:
+      - TS_USERSPACE=true
     network_mode: host
-    privileged: true
     volumes:
-      - /var/lib:/var/lib
-      - /dev/net/tun:/dev/net/tun
+      - tailscale-data:/var/lib
 volumes:
   grafana-data:
