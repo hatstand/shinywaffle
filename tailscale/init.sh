@@ -37,9 +37,10 @@ if [ -z "${TAILSCALE_HOSTNAME}" ]; then
 fi
 
 echo 'Starting tailscaled'
-tailscaled --tun=userspace-networking -state=/tailscale/tailscaled.state &
+tailscaled --tun=userspace-networking &
 echo 'Polling for tailscaled to start'
-while ! tailscale status --peers=false >/dev/null 2>&1; do sleep 1; done
+# tailscale status --json returns 0 when tailscaled is running, otherwise 1.
+while ! tailscale status --json >/dev/null 2>&1; do sleep 1; done
 
 echo 'Starting tailscale'
 tailscale up \
