@@ -6,6 +6,7 @@ services:
       dockerfile: ./control/Dockerfile
     restart: always
     privileged: true
+    network_mode: host
     expose:
       - "80"
       - "2112"
