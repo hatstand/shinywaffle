@@ -36,14 +36,18 @@ if [ -z "${TAILSCALE_HOSTNAME}" ]; then
     export TAILSCALE_HOSTNAME=${BALENA_DEVICE_NAME_AT_INIT}
 fi
 
+echo 'Starting tailscaled'
 tailscaled --tun=userspace-networking -state=/tailscale/tailscaled.state &
+echo 'Polling for tailscaled to start'
 while ! tailscale status --peers=false >/dev/null 2>&1; do sleep 1; done
 
+echo 'Starting tailscale'
 tailscale up \
 	--authkey "${TAILSCALE_KEY}" \
 	--hostname "${TAILSCALE_HOSTNAME}" \
 	--advertise-tags "${TAILSCALE_TAGS}" \
 	$@
+echo 'Tailscale started'
 
 if [ "${TAILSCALE_IP}" = true ]; then
     IP_ADDRESS=$(tailscale ip -4)
