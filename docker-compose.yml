@@ -23,6 +23,6 @@ services:
       - TS_USERSPACE=true
     network_mode: host
     volumes:
-      - tailscale-data:/var/lib
+      - 'tailscale-data:/var/lib'
 volumes:
   grafana-data:
