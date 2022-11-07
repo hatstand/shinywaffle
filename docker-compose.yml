@@ -17,13 +17,15 @@ services:
     volumes:
       - 'grafana-data:/var/lib/grafana'
   tailscale:
-    image: tailscale/tailscale
+    build:
+      context: .
+      dockerfile: ./tailscale/Dockerfile
     restart: always
     environment:
-      - TS_USERSPACE=true
+      - TAILSCALE_IP=true
     network_mode: host
     volumes:
-      - 'tailscale-data:/var/lib'
+      - 'tailscale-data:/tailscale'
 volumes:
   grafana-data:
   tailscale-data:
