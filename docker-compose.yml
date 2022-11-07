@@ -22,7 +22,7 @@ services:
       dockerfile: ./tailscale/Dockerfile
     restart: always
     environment:
-      - TAILSCALE_IP=true
+      - TAILSCALE_IP=false
     network_mode: host
     volumes:
       - 'tailscale-data:/var/lib/tailscale'
