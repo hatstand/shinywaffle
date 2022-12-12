@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -16,6 +17,7 @@ type Publisher struct {
 }
 
 func (p *Publisher) Publish(ctx context.Context, name string, temp float64, on bool) error {
+	name = url.PathEscape(name)
 	g := p.tempMetrics[name]
 	if g == nil {
 		m, err := p.mp.Meter("shinywaffle").AsyncFloat64().Gauge(name)
