@@ -216,7 +216,7 @@ func main() {
 
 	telemetry := telemetry.NewPublisher(mp)
 
-	calendarService, err := calendar.NewCalendarScheduleService()
+	calendarService, err := calendar.NewCalendarScheduleService(logger)
 	if err != nil {
 		logger.Fatalf("Failed to start calendar service: %v", err)
 	}
