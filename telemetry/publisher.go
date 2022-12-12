@@ -20,7 +20,7 @@ func (p *Publisher) Publish(ctx context.Context, name string, temp float64, on b
 	name = strings.ReplaceAll(name, " ", "_")
 	g := p.tempMetrics[name]
 	if g == nil {
-		m, err := p.mp.Meter("shinywaffle").AsyncFloat64().Gauge(name)
+		m, err := p.mp.Meter("github.com/hatstand/shinywaffle").AsyncFloat64().Gauge(name)
 		if err != nil {
 			return fmt.Errorf("failed to create gauge: %w", err)
 		}
