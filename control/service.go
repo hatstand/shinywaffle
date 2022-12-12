@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"sort"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hatstand/shinywaffle/calendar"
 	"github.com/hatstand/shinywaffle/wirelesstag"
+	"go.uber.org/zap"
 )
 
 var client = flag.String("client", "", "OAuth client id")
@@ -41,6 +41,7 @@ type Controller struct {
 	lastUpdated     time.Time
 	calendarService *calendar.CalendarScheduleService
 	statusPublisher StatusPublisher
+	logger          *zap.SugaredLogger
 }
 
 type StatusPublisher interface {
@@ -52,20 +53,20 @@ func NewController(
 	controller RadiatorController,
 	calendarService *calendar.CalendarScheduleService,
 	statusPublisher StatusPublisher,
-) *Controller {
+	logger *zap.SugaredLogger,
+) (*Controller, error) {
 	configText, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatalf("Failed to read config file: %s %v", path, err)
+		return nil, fmt.Errorf("Failed to read config file: %s %v", path, err)
 	}
 	var config Config
-	err = proto.UnmarshalText(string(configText), &config)
-	if err != nil {
-		log.Fatalf("Failed to parse config file: %v", err)
+	if err := proto.UnmarshalText(string(configText), &config); err != nil {
+		return nil, fmt.Errorf("Failed to parse config file: %v", err)
 	}
 
 	m := make(map[string]*Room)
 	for _, room := range config.Zone {
-		log.Printf("Configuring controller for: %s", room.GetName())
+		logger.Infof("Configuring controller for: %s", room.GetName())
 		ctrl := pidctrl.NewPIDController(kP, kI, kD)
 		ctrl.SetOutputLimits(0, 100)
 		m[room.GetName()] = &Room{
@@ -78,7 +79,8 @@ func NewController(
 		controller:      controller,
 		calendarService: calendarService,
 		statusPublisher: statusPublisher,
-	}
+		logger:          logger,
+	}, nil
 }
 
 func (c *Controller) checkSchedule(room *Room) (int32, error) {
@@ -90,12 +92,12 @@ func (c *Controller) checkSchedule(room *Room) (int32, error) {
 	for _, period := range on {
 		start, err := time.Parse(time.RFC3339, period.Start)
 		if err != nil {
-			log.Printf("Failed to parse time %s: %v", period.Start, err)
+			c.logger.Infof("Failed to parse time %s: %v", period.Start, err)
 			continue
 		}
 		end, err := time.Parse(time.RFC3339, period.End)
 		if err != nil {
-			log.Printf("Failed to parse time %s: %v", period.End, err)
+			c.logger.Infof("Failed to parse time %s: %v", period.End, err)
 			continue
 		}
 
@@ -109,12 +111,12 @@ func (c *Controller) checkSchedule(room *Room) (int32, error) {
 func (c *Controller) GetNextState(room *Room) HeatingState {
 	scheduledTemp, err := c.checkSchedule(room)
 	if err != nil {
-		log.Printf("Failed to get schedule for room %s: %v", room.config.Name, err)
+		c.logger.Infof("Failed to get schedule for room %s: %v", room.config.Name, err)
 		return HeatingState_OFF
 	}
 	room.Pid.Set(float64(scheduledTemp))
 	value := room.Pid.UpdateDuration(room.LastTemp, time.Since(c.lastUpdated))
-	log.Printf("Room: %s Temperature: %.1f Target: %d PID: %f\n", room.config.GetName(), room.LastTemp, scheduledTemp, value)
+	c.logger.Infof("Room: %s Temperature: %.1f Target: %d PID: %f\n", room.config.GetName(), room.LastTemp, scheduledTemp, value)
 	if value > 0.0 {
 		return HeatingState_ON
 	} else {
@@ -125,7 +127,7 @@ func (c *Controller) GetNextState(room *Room) HeatingState {
 func (c *Controller) tick() {
 	tags, err := wirelesstag.GetTags()
 	if err != nil {
-		log.Printf("Failed to fetch tag data: %v", err)
+		c.logger.Infof("Failed to fetch tag data: %v", err)
 		return
 	}
 	c.lastUpdated = time.Now()
@@ -137,7 +139,7 @@ func (c *Controller) tick() {
 			switch nextState {
 			case HeatingState_OFF, HeatingState_UNKNOWN:
 				for _, r := range room.config.Radiator {
-					log.Printf("Turning OFF %s %v", room.config.Name, r.GetAddress())
+					c.logger.Infof("Turning OFF %s %v", room.config.Name, r.GetAddress())
 					c.controller.TurnOff(r.GetAddress())
 				}
 				go func() {
@@ -145,7 +147,7 @@ func (c *Controller) tick() {
 				}()
 			case HeatingState_ON:
 				for _, r := range room.config.Radiator {
-					log.Printf("Turning ON %s %v", room.config.Name, r.GetAddress())
+					c.logger.Info("Turning ON %s %v", room.config.Name, r.GetAddress())
 					c.controller.TurnOn(r.GetAddress())
 				}
 				go func() {
@@ -154,7 +156,7 @@ func (c *Controller) tick() {
 			}
 			c.statusPublisher.Publish(context.TODO(), t.Name, t.Temperature, nextState == HeatingState_ON)
 		} else {
-			log.Printf("No config for room: %s", t.Name)
+			c.logger.Warnf("No config for room: %s", t.Name)
 		}
 	}
 }

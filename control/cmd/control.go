@@ -221,7 +221,10 @@ func main() {
 		logger.Fatalf("Failed to start calendar service: %v", err)
 	}
 
-	controller := control.NewController(*config, createRadiatorController(), calendarService, telemetry)
+	controller, err := control.NewController(*config, createRadiatorController(), calendarService, telemetry, logger)
+	if err != nil {
+		logger.Fatalf("Failed to create controller: %v", err)
+	}
 	go controller.ControlRadiators(ctx)
 
 	s := grpc.NewServer()
@@ -278,9 +281,8 @@ func main() {
 			err,
 			weath,
 		}
-		err = statusHtml.Execute(w, data)
-		if err != nil {
-			panic(err)
+		if err := statusHtml.Execute(w, data); err != nil {
+			logger.Fatal(err)
 		}
 	})
 
