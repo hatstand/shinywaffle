@@ -5,35 +5,63 @@ import (
 	"fmt"
 	"strings"
 
-	"go.opentelemetry.io/otel/attribute"
+	"github.com/hatstand/shinywaffle/wirelesstag"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/instrument"
 	"go.opentelemetry.io/otel/metric/instrument/asyncfloat64"
+	"go.uber.org/zap"
 )
 
 type Publisher struct {
 	mp metric.MeterProvider
 
-	tempMetrics map[string]asyncfloat64.Gauge
+	logger *zap.SugaredLogger
 }
 
-func (p *Publisher) Publish(ctx context.Context, name string, temp float64, on bool) error {
-	name = strings.ReplaceAll(name, " ", "_")
-	g := p.tempMetrics[name]
-	if g == nil {
-		m, err := p.mp.Meter("github.com/hatstand/shinywaffle").AsyncFloat64().Gauge(name)
+func instruments(m map[string]asyncfloat64.Gauge) []instrument.Asynchronous {
+	var values []instrument.Asynchronous
+	for _, v := range m {
+		values = append(values, v)
+	}
+	return values
+}
+
+func (p *Publisher) Publish() error {
+	// Create gauges for each.
+	m := p.mp.Meter("github.com/hatstand/shinywaffle")
+
+	tags, err := wirelesstag.GetTags()
+	if err != nil {
+		return fmt.Errorf("failed to fetch tag data: %w", err)
+	}
+
+	gs := make(map[string]asyncfloat64.Gauge)
+	for _, tag := range tags {
+		g, err := m.AsyncFloat64().Gauge(strings.ReplaceAll(tag.Name, " ", "_"))
 		if err != nil {
 			return fmt.Errorf("failed to create gauge: %w", err)
 		}
-		p.tempMetrics[name] = m
-		g = m
+		gs[tag.Name] = g
 	}
-	g.Observe(ctx, temp, attribute.Bool("on", on))
+
+	m.RegisterCallback(instruments(gs), func(ctx context.Context) {
+		tags, err := wirelesstag.GetTags()
+		if err != nil {
+			p.logger.Errorf("failed to fetch tag data: %w", err)
+			return
+		}
+		for _, tag := range tags {
+			if g, ok := gs[tag.Name]; ok {
+				g.Observe(ctx, tag.Temperature)
+			}
+		}
+	})
 	return nil
 }
 
-func NewPublisher(mp metric.MeterProvider) *Publisher {
+func NewPublisher(mp metric.MeterProvider, logger *zap.SugaredLogger) *Publisher {
 	return &Publisher{
-		mp:          mp,
-		tempMetrics: make(map[string]asyncfloat64.Gauge),
+		mp:     mp,
+		logger: logger,
 	}
 }

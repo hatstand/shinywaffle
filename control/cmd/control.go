@@ -214,14 +214,17 @@ func main() {
 		}
 	}()
 
-	telemetry := telemetry.NewPublisher(mp)
+	telemetry := telemetry.NewPublisher(mp, logger)
+	if err := telemetry.Publish(); err != nil {
+		logger.Fatalf("failed to configure telemetry: %v", err)
+	}
 
 	calendarService, err := calendar.NewCalendarScheduleService(logger)
 	if err != nil {
 		logger.Fatalf("Failed to start calendar service: %v", err)
 	}
 
-	controller, err := control.NewController(*config, createRadiatorController(), calendarService, telemetry, logger)
+	controller, err := control.NewController(*config, createRadiatorController(), calendarService, logger)
 	if err != nil {
 		logger.Fatalf("Failed to create controller: %v", err)
 	}

@@ -40,19 +40,13 @@ type Controller struct {
 	controller      RadiatorController
 	lastUpdated     time.Time
 	calendarService *calendar.CalendarScheduleService
-	statusPublisher StatusPublisher
 	logger          *zap.SugaredLogger
-}
-
-type StatusPublisher interface {
-	Publish(context.Context, string, float64, bool) error
 }
 
 func NewController(
 	path string,
 	controller RadiatorController,
 	calendarService *calendar.CalendarScheduleService,
-	statusPublisher StatusPublisher,
 	logger *zap.SugaredLogger,
 ) (*Controller, error) {
 	configText, err := ioutil.ReadFile(path)
@@ -78,7 +72,6 @@ func NewController(
 		Config:          m,
 		controller:      controller,
 		calendarService: calendarService,
-		statusPublisher: statusPublisher,
 		logger:          logger,
 	}, nil
 }
@@ -142,19 +135,12 @@ func (c *Controller) tick() {
 					c.logger.Infof("Turning OFF %s %v", room.config.Name, r.GetAddress())
 					c.controller.TurnOff(r.GetAddress())
 				}
-				go func() {
-					c.statusPublisher.Publish(context.TODO(), room.config.Name, room.LastTemp, false)
-				}()
 			case HeatingState_ON:
 				for _, r := range room.config.Radiator {
 					c.logger.Info("Turning ON %s %v", room.config.Name, r.GetAddress())
 					c.controller.TurnOn(r.GetAddress())
 				}
-				go func() {
-					c.statusPublisher.Publish(context.TODO(), room.config.Name, room.LastTemp, true)
-				}()
 			}
-			c.statusPublisher.Publish(context.TODO(), t.Name, t.Temperature, nextState == HeatingState_ON)
 		} else {
 			c.logger.Warnf("No config for room: %s", t.Name)
 		}
