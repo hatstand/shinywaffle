@@ -129,7 +129,10 @@ func createLogger(ctx context.Context) (*zap.SugaredLogger, error) {
 	cfg.EncoderConfig.MessageKey = "message"
 	cfg.EncoderConfig.StacktraceKey = "stacktrace"
 
-	c, err := logging.NewClient(ctx, "projects/shinywaffle-1540815179440")
+	c, err := logging.NewClient(
+		ctx, "projects/shinywaffle-1540815179440",
+		option.WithCredentialsJSON([]byte(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logging client: %w", err)
 	}
@@ -155,7 +158,10 @@ func main() {
 	exporter, err := texporter.New(
 		texporter.WithProjectID("shinywaffle-1540815179440"),
 		// Disable telemetry on the exporter client otherwise it will trace itself!
-		texporter.WithTraceClientOptions([]option.ClientOption{option.WithTelemetryDisabled()}),
+		texporter.WithTraceClientOptions([]option.ClientOption{
+			option.WithTelemetryDisabled(),
+			option.WithCredentialsJSON([]byte(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))),
+		}),
 	)
 	if err != nil {
 		logger.Fatalf("failed to create the Cloud Trace exporter: %v", err)
