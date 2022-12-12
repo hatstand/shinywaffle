@@ -191,7 +191,11 @@ func main() {
 
 	metricsExporter, err := mexporter.New(
 		mexporter.WithProjectID("shinywaffle-1540815179440"),
+		mexporter.WithMonitoringClientOptions(option.WithCredentialsJSON([]byte(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")))),
 	)
+	if err != nil {
+		logger.Fatalf("error creating metric exporter: %w", err)
+	}
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricsExporter, sdkmetric.WithInterval(time.Minute))),
 		sdkmetric.WithResource(res),
