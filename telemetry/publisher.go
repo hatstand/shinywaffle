@@ -28,7 +28,7 @@ func instruments(m map[string]asyncfloat64.Gauge) []instrument.Asynchronous {
 
 func (p *Publisher) Publish() error {
 	// Create gauges for each.
-	m := p.mp.Meter("github.com/hatstand/shinywaffle")
+	m := p.mp.Meter("github.com/hatstand/shinywaffle", metric.WithSchemaURL("custom.googleapis.com/shinywaffle"))
 
 	tags, err := wirelesstag.GetTags()
 	if err != nil {
@@ -37,7 +37,7 @@ func (p *Publisher) Publish() error {
 
 	gs := make(map[string]asyncfloat64.Gauge)
 	for _, tag := range tags {
-		g, err := m.AsyncFloat64().Gauge(strings.ReplaceAll(tag.Name, " ", "_"))
+		g, err := m.AsyncFloat64().Gauge(strings.ReplaceAll(tag.Name, " ", "_"), instrument.WithUnit("C"))
 		if err != nil {
 			return fmt.Errorf("failed to create gauge: %w", err)
 		}
