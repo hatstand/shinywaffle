@@ -2,10 +2,13 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"strings"
 
@@ -18,6 +21,20 @@ var clientSecret = flag.String("client-secret", "", "Google OAuth Client Secret"
 
 func main() {
 	flag.Parse()
+	ctx := context.Background()
+
+	l, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+	port := l.Addr().(*net.TCPAddr).Port
+	fmt.Println("Listening on port", port)
+	srv := &http.Server{}
+	go func() {
+		if err := srv.Serve(l); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	conf := oauth2.Config{
 		ClientID:     *clientID,
@@ -26,7 +43,7 @@ func main() {
 			"https://www.googleapis.com/auth/calendar.readonly",
 		},
 		Endpoint:    google.Endpoint,
-		RedirectURL: "urn:ietf:wg:oauth:2.0:oob",
+		RedirectURL: fmt.Sprintf("http://localhost:%d", port),
 	}
 	url := conf.AuthCodeURL("foo")
 	fmt.Println(url)
@@ -37,7 +54,7 @@ func main() {
 		log.Fatalf("Failed to read auth code: %v", err)
 	}
 
-	tok, err := conf.Exchange(oauth2.NoContext, strings.TrimSpace(code))
+	tok, err := conf.Exchange(ctx, strings.TrimSpace(code))
 	if err != nil {
 		log.Fatalf("Failed to exchange token: %v", err)
 	}
