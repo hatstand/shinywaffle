@@ -7,8 +7,6 @@ import (
 
 	"github.com/hatstand/shinywaffle/wirelesstag"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/instrument"
-	"go.opentelemetry.io/otel/metric/instrument/asyncfloat64"
 	"go.uber.org/zap"
 )
 
@@ -18,8 +16,8 @@ type Publisher struct {
 	logger *zap.SugaredLogger
 }
 
-func instruments(m map[string]asyncfloat64.Gauge) []instrument.Asynchronous {
-	var values []instrument.Asynchronous
+func instruments(m map[string]metric.Float64ObservableGauge) []metric.Observable {
+	var values []metric.Observable
 	for _, v := range m {
 		values = append(values, v)
 	}
@@ -35,27 +33,28 @@ func (p *Publisher) Publish() error {
 		return fmt.Errorf("failed to fetch tag data: %w", err)
 	}
 
-	gs := make(map[string]asyncfloat64.Gauge)
+	gs := make(map[string]metric.Float64ObservableGauge)
 	for _, tag := range tags {
-		g, err := m.AsyncFloat64().Gauge(strings.ReplaceAll(tag.Name, " ", "_"), instrument.WithUnit("C"))
+		g, err := m.Float64ObservableGauge(strings.ReplaceAll(tag.Name, " ", "_"), metric.WithUnit("C"))
 		if err != nil {
 			return fmt.Errorf("failed to create gauge: %w", err)
 		}
 		gs[tag.Name] = g
 	}
 
-	m.RegisterCallback(instruments(gs), func(ctx context.Context) {
+	m.RegisterCallback(func(ctx context.Context, o metric.Observer) error {
 		tags, err := wirelesstag.GetTags()
 		if err != nil {
-			p.logger.Errorf("failed to fetch tag data: %w", err)
-			return
+			p.logger.Errorf("failed to fetch tag data: %v", err)
+			return fmt.Errorf("failed to fetch tag data: %w", err)
 		}
 		for _, tag := range tags {
 			if g, ok := gs[tag.Name]; ok {
-				g.Observe(ctx, tag.Temperature)
+				o.ObserveFloat64(g, tag.Temperature)
 			}
 		}
-	})
+		return nil
+	}, instruments(gs)...)
 	return nil
 }
 
