@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hatstand/shinywaffle/metar"
-	"github.com/wcharczuk/go-chart"
+	chart "github.com/go-analyze/charts/chartdraw"
 )
 
 var icao = flag.String("icao", "EGLC", "ICAO code of an airport")
@@ -30,16 +30,6 @@ func main() {
 	}
 
 	graph := chart.Chart{
-		XAxis: chart.XAxis{
-			Style: chart.Style{
-				Show: true,
-			},
-		},
-		YAxis: chart.YAxis{
-			Style: chart.Style{
-				Show: true,
-			},
-		},
 		Series: []chart.Series{
 			chart.TimeSeries{
 				XValues: x,
