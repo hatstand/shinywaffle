@@ -7,22 +7,24 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Setup Go environment
-        uses: actions/setup-go@v2.1.3
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
 
       - name: Go test
         run: go test ./...
 
       - name: Build Balena image
-        uses: bekriebel/balena-cli-action@v1.0.1
+        uses: NebraLtd/balena-cli-action@v21.1.9
         with:
           balena_api_token: ${{ secrets.BALENA_API_KEY }}
           balena_command: build . --application heating
 
       - name: Deploy
-        uses: bekriebel/balena-cli-action@v1.0.1
+        uses: NebraLtd/balena-cli-action@v21.1.9
         if: github.ref == 'refs/heads/master'
         with:
           balena_api_token: ${{ secrets.BALENA_API_KEY }}
