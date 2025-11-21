@@ -17,15 +17,18 @@ jobs:
       - name: Go test
         run: go test ./...
 
+      - name: Fetch balena CLI
+        run: |
+          wget https://github.com/balena-io/balena-cli/releases/download/v23.1.4/balena-cli-v23.1.4-linux-x64-standalone.tar.gz
+          tar -xf balena-cli-v23.1.4-linux-x64-standalone.tar.gz
+          echo "$(pwd)/balena/bin" >> $GITHUB_PATH
+
+      - name: Balena login
+        run: balena login --token ${{ secrets.BALENA_API_KEY }}
+
       - name: Build Balena image
-        uses: NebraLtd/balena-cli-action@v21.1.9
-        with:
-          balena_api_token: ${{ secrets.BALENA_API_KEY }}
-          balena_command: build . --application heating
+        run: balena build . --application heating
 
       - name: Deploy
-        uses: NebraLtd/balena-cli-action@v21.1.9
         if: github.ref == 'refs/heads/master'
-        with:
-          balena_api_token: ${{ secrets.BALENA_API_KEY }}
-          balena_command: deploy heating --build --source .
+        run: balena deploy heating --build --source .
